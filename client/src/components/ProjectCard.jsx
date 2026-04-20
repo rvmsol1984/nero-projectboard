@@ -5,11 +5,10 @@ import {
 } from '../theme.js';
 
 function Avatar({ name, size = 18 }) {
-  const isNumeric = !name || /^\d+$/.test(String(name));
   return (
     <div title={name} style={{
       width: size, height: size, borderRadius: '50%',
-      background: isNumeric ? 'var(--bg-hover)' : assigneeColor(name),
+      background: assigneeColor(name),
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: Math.round(size * 0.42), fontWeight: 600,
       color: '#fff', flexShrink: 0, letterSpacing: '-0.3px',

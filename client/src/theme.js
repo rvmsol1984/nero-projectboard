@@ -23,25 +23,35 @@ const THEME_CSS = `
     --orange:   #f59e0b;
     --red:      #ef4444;
     --purple:   #a855f7;
+    --avatar-fallback: #3f3f46;
+    --pill-new-bg:    rgba(59,130,246,0.15);  --pill-new-color:  #3b82f6;
+    --pill-prog-bg:   rgba(245,158,11,0.15);  --pill-prog-color: #f59e0b;
+    --pill-hold-bg:   rgba(168,85,247,0.15);  --pill-hold-color: #a855f7;
+    --pill-done-bg:   rgba(34,197,94,0.15);   --pill-done-color: #22c55e;
   }
   body.light {
-    --bg-body:   #fafafa;
+    --bg-body:   #f0f2f5;
     --bg-card:   #ffffff;
     --bg-panel:  #ffffff;
     --bg-hover:  rgba(0,0,0,0.04);
     --bg-input:  rgba(0,0,0,0.04);
-    --shadow-card:       0 0 0 1px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-card-hover: 0 0 0 1px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.08);
-    --border-subtle: rgba(0,0,0,0.07);
-    --nav-bg:    rgba(250,250,250,0.88);
-    --text-primary:   #09090b;
-    --text-secondary: #71717a;
-    --text-muted:     #a1a1aa;
+    --shadow-card:       0 0 0 1px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06);
+    --shadow-card-hover: 0 0 0 1px rgba(0,0,0,0.14), 0 6px 16px rgba(0,0,0,0.1);
+    --border-subtle: rgba(0,0,0,0.09);
+    --nav-bg:    rgba(240,242,245,0.88);
+    --text-primary:   #0f0f0f;
+    --text-secondary: #4b5563;
+    --text-muted:     #6b7280;
     --accent:   #3b82f6;
     --green:    #22c55e;
     --orange:   #f59e0b;
-    --red:      #ef4444;
+    --red:      #dc2626;
     --purple:   #a855f7;
+    --avatar-fallback: #9ca3af;
+    --pill-new-bg:    rgba(37,99,235,0.12);   --pill-new-color:  #1d4ed8;
+    --pill-prog-bg:   rgba(217,119,6,0.12);   --pill-prog-color: #b45309;
+    --pill-hold-bg:   rgba(124,58,237,0.12);  --pill-hold-color: #6d28d9;
+    --pill-done-bg:   rgba(22,163,74,0.12);   --pill-done-color: #15803d;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body, #root { height: 100%; }
@@ -81,10 +91,10 @@ const THEME_CSS = `
 `;
 
 export const STATUS_PILL = {
-  'New':         { bg: 'rgba(59,130,246,0.15)',  color: '#3b82f6' },
-  'In Progress': { bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b' },
-  'On Hold':     { bg: 'rgba(168,85,247,0.15)',  color: '#a855f7' },
-  'Complete':    { bg: 'rgba(34,197,94,0.15)',   color: '#22c55e' },
+  'New':         { bg: 'var(--pill-new-bg)',  color: 'var(--pill-new-color)'  },
+  'In Progress': { bg: 'var(--pill-prog-bg)', color: 'var(--pill-prog-color)' },
+  'On Hold':     { bg: 'var(--pill-hold-bg)', color: 'var(--pill-hold-color)' },
+  'Complete':    { bg: 'var(--pill-done-bg)', color: 'var(--pill-done-color)' },
 };
 
 export const COLUMNS = [
@@ -111,8 +121,8 @@ export function initials(name = '') {
 }
 
 export function assigneeColor(name) {
-  if (!name || /^\d+$/.test(String(name))) return '#52525b';
-  return ASSIGNEE_COLORS[name] || '#52525b';
+  if (!name || /^\d+$/.test(String(name))) return 'var(--avatar-fallback)';
+  return ASSIGNEE_COLORS[name] || 'var(--avatar-fallback)';
 }
 
 export function clientLabel(val) {
