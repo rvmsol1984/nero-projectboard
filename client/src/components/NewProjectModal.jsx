@@ -198,7 +198,7 @@ export default function NewProjectModal({ onClose, onCreated }) {
             />
           </div>
 
-          {/* Client + Lead */}
+          {/* Client + Tech */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <SearchField
               label="Client *"
@@ -210,7 +210,7 @@ export default function NewProjectModal({ onClose, onCreated }) {
               placeholder="Search company…"
             />
             <SearchField
-              label="Lead"
+              label="Tech"
               searchValue={resourceSearch}
               onSearchChange={setResourceSearch}
               selected={selectedResource}

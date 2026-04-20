@@ -108,14 +108,15 @@ router.post('/', async (req, res) => {
       projectName: name,
       companyID: parseInt(companyID),
       projectLeadResourceID: assigneeID ? parseInt(assigneeID) : undefined,
-      startDateTime: startDate || new Date().toISOString(),
-      endDateTime: endDate,
+      startDateTime: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
+      endDateTime: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
       description: description || '',
       status: 1,
+      estimatedHours: 0,
     });
     res.json({ id: data.itemId, ...req.body });
   } catch (err) {
-    console.error('[projects] POST error:', err.response?.data || err.message);
+    console.error('[projects] POST error:', JSON.stringify(err.response?.data) || err.message);
     res.status(502).json({ error: 'Failed to create project' });
   }
 });
@@ -125,13 +126,13 @@ router.patch('/:id', async (req, res) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'status is required' });
   try {
-    await atClient.patch(`/Projects/${id}`, {
+    await atClient.put(`/Projects/${id}`, {
       id: parseInt(id),
       status: reverseMapStatus(status),
     });
     res.json({ ok: true });
   } catch (err) {
-    console.error('[projects] PATCH error:', err.response?.data || err.message);
+    console.error('[projects] PUT error:', err.response?.data || err.message);
     res.status(502).json({ error: 'Failed to update project' });
   }
 });

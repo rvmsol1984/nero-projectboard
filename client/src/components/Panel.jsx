@@ -313,15 +313,15 @@ export default function Panel({ project, onClose }) {
               { label: 'Tasks done',   value: `${doneTasks} / ${tasks.length}` },
               { label: 'Hours logged', value: `${totalHours.toFixed(1)}h` },
               { label: 'Due date',     value: fmtDate(project.dueDate), accent: overdue ? 'var(--red)' : null },
-              { label: 'Lead',         isLead: true },
-            ].map(({ label, value, accent, isLead }) => (
+              { label: 'Tech',         isTech: true },
+            ].map(({ label, value, accent, isTech }) => (
               <div key={label}>
                 <div style={{
                   fontSize: 9, color: 'var(--text-muted)',
                   textTransform: 'uppercase', letterSpacing: '0.07em',
                   fontWeight: 600, marginBottom: 3,
                 }}>{label}</div>
-                {isLead ? (
+                {isTech ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Avatar name={project.assignee} size={18} />
                     <span style={{
