@@ -1,84 +1,72 @@
 import ProjectCard from './ProjectCard.jsx';
 
-const styles = {
-  column: (dragOver) => ({
-    background: dragOver ? 'var(--bg-hover)' : 'transparent',
-    borderRadius: 8,
-    border: `1px solid ${dragOver ? 'var(--border-hover)' : 'var(--border)'}`,
-    transition: 'border-color .15s, background .15s',
-    minHeight: 80,
-    display: 'flex',
-    flexDirection: 'column',
-  }),
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 14px 10px',
-    flexShrink: 0,
-  },
-  label: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  bar: (color) => ({
-    width: 3,
-    height: 14,
-    borderRadius: 2,
-    background: color,
-    flexShrink: 0,
-  }),
-  labelText: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.8px',
-  },
-  badge: {
-    background: 'var(--bg-hover)',
-    border: '1px solid var(--border)',
-    borderRadius: 10,
-    padding: '1px 7px',
-    fontSize: 11,
-    color: 'var(--text-secondary)',
-    fontWeight: 500,
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  body: {
-    padding: '0 8px 10px',
-    flex: 1,
-  },
-};
-
 export default function Column({
-  column,
-  projects,
-  dragOver,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onDragStart,
-  onDragEnd,
-  onCardClick,
+  column, projects,
+  dragOver, onDragOver, onDragLeave, onDrop,
+  onDragStart, onDragEnd, onCardClick,
 }) {
+  const totalHours = projects.reduce((s, p) => s + (p.tasksTotal || 0), 0);
+
   return (
     <div
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      style={styles.column(dragOver)}
+      style={{
+        background: dragOver ? 'var(--bg-hover)' : 'transparent',
+        borderRadius: 8,
+        border: `1px solid ${dragOver ? 'var(--border-hover)' : 'var(--border)'}`,
+        transition: 'border-color .15s, background .15s',
+        minHeight: 60,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
-      <div style={styles.header}>
-        <div style={styles.label}>
-          <div style={styles.bar(column.color)} />
-          <span style={styles.labelText}>{column.label}</span>
+      {/* Column header */}
+      <div style={{
+        padding: '11px 14px 9px',
+        borderBottom: `1px solid var(--border)`,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 8,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <div style={{
+            width: 3, height: 14, borderRadius: 2,
+            background: column.color, flexShrink: 0, marginTop: 1,
+          }} />
+          <div>
+            <div style={{
+              fontSize: 11, fontWeight: 600,
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              lineHeight: 1.2,
+            }}>{column.label}</div>
+            {totalHours > 0 && (
+              <div style={{
+                fontSize: 10, color: 'var(--text-muted)',
+                marginTop: 2, fontWeight: 400,
+              }}>{totalHours.toFixed(0)}h</div>
+            )}
+          </div>
         </div>
-        <span style={styles.badge}>{projects.length}</span>
+        <span style={{
+          background: 'var(--bg-hover)',
+          border: '1px solid var(--border)',
+          borderRadius: 10,
+          padding: '1px 7px',
+          fontSize: 11,
+          color: 'var(--text-muted)',
+          fontWeight: 500,
+          flexShrink: 0,
+        }}>{projects.length}</span>
       </div>
-      <div style={styles.body}>
+
+      {/* Cards */}
+      <div style={{ padding: '8px 8px 4px', flex: 1 }}>
         {projects.map(p => (
           <ProjectCard
             key={p.id}

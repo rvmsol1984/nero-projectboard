@@ -1,126 +1,146 @@
 import { useState } from 'react';
-import { COLUMNS, assigneeColor, initials, isOverdue, fmtDate, priorityColor } from '../theme.js';
+import { COLUMNS, assigneeColor, initials, isOverdue, fmtDate, priorityColor, progressColor } from '../theme.js';
 
-function PriorityDot({ priority, size = 7 }) {
+function Avatar({ name, size = 20 }) {
   return (
-    <span
-      title={priority}
-      style={{
-        width: size, height: size, borderRadius: '50%',
-        background: priorityColor(priority),
-        display: 'inline-block', flexShrink: 0,
-      }}
-    />
+    <div title={name} style={{
+      width: size, height: size, borderRadius: '50%',
+      background: assigneeColor(name),
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.round(size * 0.38), fontWeight: 600,
+      color: '#fff', flexShrink: 0, letterSpacing: '-0.3px',
+    }}>
+      {initials(name)}
+    </div>
   );
 }
 
-function Avatar({ name, size = 22 }) {
+const STATUS_BG = {
+  'New':         'var(--accent-blue)',
+  'In Progress': 'var(--accent-orange)',
+  'On Hold':     'var(--accent-purple)',
+  'Complete':    'var(--accent-green)',
+};
+
+function StatusPill({ status }) {
   return (
-    <div
-      title={name}
-      style={{
-        width: size, height: size, borderRadius: '50%',
-        background: assigneeColor(name),
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: Math.round(size * 0.4),
-        fontWeight: 600, color: '#fff', flexShrink: 0,
-        letterSpacing: '-0.3px',
-      }}
-    >
-      {initials(name)}
-    </div>
+    <span style={{
+      background: STATUS_BG[status] || 'var(--text-muted)',
+      color: '#fff',
+      borderRadius: 9999,
+      padding: '2px 8px',
+      fontSize: 10,
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+      letterSpacing: '0.1px',
+    }}>{status}</span>
   );
 }
 
 export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }) {
   const [hovered, setHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const colColor = COLUMNS.find(c => c.id === project.status)?.color || 'var(--accent-blue)';
-  const done = project.tasksDone || 0;
-  const total = project.tasksTotal || 0;
-  const pct = total > 0 ? Math.min(100, (done / total) * 100) : 0;
+
+  const pct = Math.min(100, project.tasksDone || 0);
+  const hours = project.tasksTotal || 0;
   const overdue = isOverdue(project.dueDate);
 
   return (
     <div
       draggable
-      onDragStart={(e) => { setDragging(true); onDragStart(e); }}
-      onDragEnd={(e) => { setDragging(false); onDragEnd(e); }}
+      onDragStart={() => { setDragging(true); onDragStart(); }}
+      onDragEnd={() => { setDragging(false); onDragEnd(); }}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? 'var(--bg-hover)' : 'var(--bg-card)',
-        border: `1px solid ${hovered ? 'var(--border-hover)' : 'var(--border)'}`,
+        background: hovered && !dragging ? 'var(--bg-hover)' : 'var(--bg-card)',
+        border: `1px solid ${hovered && !dragging ? 'var(--border-hover)' : 'var(--border)'}`,
         borderRadius: 6,
-        padding: '10px 12px',
+        padding: 12,
         marginBottom: 8,
         cursor: dragging ? 'grabbing' : 'grab',
         transform: hovered && !dragging ? 'translateY(-1px)' : 'none',
-        opacity: dragging ? 0.5 : 1,
+        opacity: dragging ? 0.45 : 1,
         transition: 'transform .1s, border-color .1s, background .1s',
         userSelect: 'none',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <PriorityDot priority={project.priority} />
+      {/* Row 1: priority dot + client */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5,
+      }}>
+        <span style={{
+          width: 7, height: 7, borderRadius: '50%',
+          background: priorityColor(project.priority),
+          flexShrink: 0, display: 'inline-block',
+        }} />
         <span style={{
           fontSize: 10, color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: '0.6px',
+          textTransform: 'uppercase', letterSpacing: '0.5px',
           fontWeight: 500, flex: 1,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {project.client}
-        </span>
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{project.client}</span>
       </div>
 
+      {/* Row 2: project name */}
       <div style={{
-        fontSize: 14, fontWeight: 500,
+        fontSize: 13, fontWeight: 500,
         color: 'var(--text-primary)',
-        marginBottom: 8, lineHeight: 1.35,
+        lineHeight: 1.35, marginBottom: 7,
+      }}>{project.name}</div>
+
+      {/* Row 3: status pill + tags */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        gap: 5, flexWrap: 'wrap', marginBottom: 9,
       }}>
-        {project.name}
+        <StatusPill status={project.status} />
+        {project.tags?.map(t => (
+          <span key={t} style={{
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            padding: '1px 6px',
+            fontSize: 10,
+            color: 'var(--text-secondary)',
+          }}>{t}</span>
+        ))}
       </div>
 
-      {project.tags?.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-          {project.tags.map(t => (
-            <span key={t} style={{
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              padding: '1px 6px',
-              fontSize: 11,
-              color: 'var(--text-secondary)',
-            }}>{t}</span>
-          ))}
-        </div>
-      )}
-
+      {/* Row 4: progress bar */}
       <div style={{ marginBottom: 8 }}>
         <div style={{
-          height: 2, background: 'var(--border)',
-          borderRadius: 1, overflow: 'hidden',
+          height: 6, background: 'var(--border)',
+          borderRadius: 3, overflow: 'hidden',
         }}>
           <div style={{
-            height: '100%', width: `${pct}%`,
-            background: colColor, borderRadius: 1,
+            height: '100%',
+            width: `${pct}%`,
+            background: progressColor(pct),
+            borderRadius: 3,
             transition: 'width .3s',
           }} />
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-          {done} / {total} tasks
-        </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Avatar name={project.assignee} size={22} />
-        <span style={{
-          fontSize: 11,
-          color: overdue ? 'var(--accent-red)' : 'var(--text-muted)',
-          fontWeight: overdue ? 500 : 400,
-        }}>
-          {overdue ? '⚠ ' : ''}{fmtDate(project.dueDate)}
+      {/* Row 5: left meta + right avatar/date */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: 8,
+      }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          {pct}% · {hours}h
         </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          <Avatar name={project.assignee} size={20} />
+          <span style={{
+            fontSize: 11,
+            color: overdue ? 'var(--accent-red)' : 'var(--text-muted)',
+            fontWeight: overdue ? 500 : 400,
+          }}>
+            {overdue ? '⚠ ' : ''}{fmtDate(project.dueDate)}
+          </span>
+        </div>
       </div>
     </div>
   );

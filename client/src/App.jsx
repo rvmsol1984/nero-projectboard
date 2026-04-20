@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { useTheme, COLUMNS, assigneeColor } from './theme.js';
 import Nav from './components/Nav.jsx';
 import Column from './components/Column.jsx';
-import Modal from './components/Modal.jsx';
+import Panel from './components/Panel.jsx';
 
 function Spinner() {
   return (
@@ -12,14 +12,12 @@ function Spinner() {
       height: '60vh', flexDirection: 'column', gap: 12,
     }}>
       <div style={{
-        width: 28, height: 28, borderRadius: '50%',
-        border: '2px solid var(--border)',
+        width: 26, height: 26, borderRadius: '50%',
+        border: '2.5px solid var(--border)',
         borderTopColor: 'var(--accent-blue)',
         animation: 'spin .8s linear infinite',
       }} />
-      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        Loading projects…
-      </span>
+      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading projects…</span>
     </div>
   );
 }
@@ -31,22 +29,16 @@ function ErrorState({ message, onRetry }) {
       alignItems: 'center', justifyContent: 'center',
       height: '60vh', gap: 14,
     }}>
-      <span style={{ fontSize: 13, color: 'var(--accent-red)' }}>
-        Error: {message}
-      </span>
-      <button
-        onClick={onRetry}
-        style={{
-          background: 'var(--accent-blue)',
-          border: 'none',
-          borderRadius: 6,
-          color: '#fff',
-          padding: '8px 18px',
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: 'pointer',
-        }}
-      >Retry</button>
+      <span style={{ fontSize: 13, color: 'var(--accent-red)' }}>Error: {message}</span>
+      <button onClick={onRetry} style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        color: 'var(--text-primary)',
+        padding: '8px 18px',
+        fontSize: 13, fontWeight: 500,
+        cursor: 'pointer',
+      }}>Retry</button>
     </div>
   );
 }
@@ -54,13 +46,13 @@ function ErrorState({ message, onRetry }) {
 export default function App() {
   const { theme, toggle: toggleTheme } = useTheme();
 
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState('');
+  const [projects, setProjects]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [search, setSearch]             = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('All');
-  const [dragItem, setDragItem] = useState(null);
-  const [dragOverCol, setDragOverCol] = useState(null);
+  const [dragItem, setDragItem]         = useState(null);
+  const [dragOverCol, setDragOverCol]   = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
 
   const fetchProjects = useCallback(async () => {
@@ -78,38 +70,35 @@ export default function App() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  const assignees = ['All', ...Array.from(new Set(
-    projects.map(p => p.assignee).filter(Boolean)
-  ))];
+  const assignees = [
+    'All',
+    ...Array.from(new Set(projects.map(p => p.assignee).filter(Boolean))),
+  ];
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase();
-    const matchSearch = !q
-      || p.name?.toLowerCase().includes(q)
-      || p.client?.toLowerCase().includes(q);
-    const matchAssignee = assigneeFilter === 'All' || p.assignee === assigneeFilter;
-    return matchSearch && matchAssignee;
+    return (
+      (!q || p.name?.toLowerCase().includes(q) || p.client?.toLowerCase().includes(q)) &&
+      (assigneeFilter === 'All' || p.assignee === assigneeFilter)
+    );
   });
 
   const counts = {
-    total: projects.length,
+    total:  projects.length,
     active: projects.filter(p => p.status === 'In Progress').length,
-    done: projects.filter(p => p.status === 'Complete').length,
+    done:   projects.filter(p => p.status === 'Complete').length,
   };
 
   function handleDrop(colId) {
     if (!dragItem || dragItem.status === colId) {
-      setDragOverCol(null);
-      setDragItem(null);
-      return;
+      setDragOverCol(null); setDragItem(null); return;
     }
-    const prevStatus = dragItem.status;
-    const id = dragItem.id;
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, status: colId } : p));
-    setDragOverCol(null);
-    setDragItem(null);
+    const prev = dragItem.status;
+    const id   = dragItem.id;
+    setProjects(ps => ps.map(p => p.id === id ? { ...p, status: colId } : p));
+    setDragOverCol(null); setDragItem(null);
     api.updateProjectStatus(id, colId).catch(() => {
-      setProjects(prev => prev.map(p => p.id === id ? { ...p, status: prevStatus } : p));
+      setProjects(ps => ps.map(p => p.id === id ? { ...p, status: prev } : p));
     });
   }
 
@@ -124,16 +113,11 @@ export default function App() {
 
       {/* Toolbar */}
       <div style={{
-        padding: '10px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        flexWrap: 'wrap',
+        padding: '9px 20px',
+        display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-base)',
-        position: 'sticky',
-        top: 56,
-        zIndex: 50,
+        position: 'sticky', top: 56, zIndex: 50,
       }}>
         <input
           placeholder="Search projects or clients…"
@@ -145,10 +129,10 @@ export default function App() {
             borderRadius: 6,
             color: 'var(--text-primary)',
             padding: '7px 12px',
-            fontSize: 13,
-            width: 240,
+            fontSize: 13, width: 240,
           }}
         />
+
         {assignees.map(a => {
           const active = assigneeFilter === a;
           return (
@@ -163,9 +147,7 @@ export default function App() {
                 fontSize: 12,
                 color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                 cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
+                display: 'flex', alignItems: 'center', gap: 6,
                 fontWeight: active ? 500 : 400,
                 transition: 'all .1s',
               }}
@@ -180,30 +162,24 @@ export default function App() {
             </button>
           );
         })}
+
         <button style={{
           marginLeft: 'auto',
           background: 'var(--accent-blue)',
-          border: 'none',
-          borderRadius: 6,
-          color: '#fff',
-          padding: '7px 14px',
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: 'pointer',
+          border: 'none', borderRadius: 6,
+          color: '#fff', padding: '7px 14px',
+          fontSize: 13, fontWeight: 500, cursor: 'pointer',
         }}>+ New Project</button>
       </div>
 
       {/* Board */}
-      {loading ? (
-        <Spinner />
-      ) : error ? (
+      {loading ? <Spinner /> : error ? (
         <ErrorState message={error} onRetry={fetchProjects} />
       ) : (
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 14,
-          padding: '16px 20px',
+          gap: 14, padding: '16px 20px',
           alignItems: 'start',
         }}>
           {COLUMNS.map(col => (
@@ -224,7 +200,7 @@ export default function App() {
       )}
 
       {selectedProject && (
-        <Modal
+        <Panel
           project={selectedProject}
           onClose={() => setSelectedProject(null)}
         />
