@@ -50,5 +50,5 @@ jobs:
             cd /root/nero-projectboard
             git pull origin main
             cd server && npm install --omit=dev
-            pm2 reload nero-projectboard || pm2 start ecosystem.config.js --env production
+            /root/.nvm/versions/node/v20.20.0/bin/pm2 reload nero-projectboard || /root/.nvm/versions/node/v20.20.0/bin/pm2 start ecosystem.config.js --env production
             echo "Deploy complete"
