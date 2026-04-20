@@ -1,55 +1,64 @@
 import { useState, useEffect } from 'react';
 
+const FONT_ID   = 'nero-inter-font';
+const STYLE_ID  = 'nero-theme-css';
+const STORAGE_KEY = 'nero-theme';
+
 const THEME_CSS = `
   :root {
-    --bg-base: #0d1117;
-    --bg-card: #161b22;
-    --bg-hover: #1c2128;
-    --bg-panel: #13161c;
-    --border: #30363d;
-    --border-hover: #484f58;
-    --text-primary: #e6edf3;
-    --text-secondary: #8b949e;
-    --text-muted: #6e7681;
-    --accent-blue: #2f81f7;
-    --accent-green: #3fb950;
-    --accent-orange: #d29922;
-    --accent-red: #f85149;
-    --accent-purple: #8957e5;
-    --shadow: 0 1px 3px rgba(0,0,0,0.4);
-    --shadow-hover: 0 6px 16px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
+    --bg-body:   #09090b;
+    --bg-card:   #18181b;
+    --bg-panel:  #18181b;
+    --bg-hover:  rgba(255,255,255,0.05);
+    --bg-input:  rgba(255,255,255,0.06);
+    --shadow-card:       0 0 0 1px rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.4);
+    --shadow-card-hover: 0 0 0 1px rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.5);
+    --border-subtle: rgba(255,255,255,0.07);
+    --nav-bg:    rgba(9,9,11,0.82);
+    --text-primary:   #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted:     #52525b;
+    --accent:   #3b82f6;
+    --green:    #22c55e;
+    --orange:   #f59e0b;
+    --red:      #ef4444;
+    --purple:   #a855f7;
   }
   body.light {
-    --bg-base: #f6f8fa;
-    --bg-card: #ffffff;
-    --bg-hover: #f3f4f6;
-    --bg-panel: #ffffff;
-    --border: #e5e7eb;
-    --border-hover: #d1d5db;
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
-    --text-muted: #9ca3af;
-    --accent-blue: #2563eb;
-    --accent-green: #16a34a;
-    --accent-orange: #d97706;
-    --accent-red: #dc2626;
-    --accent-purple: #7c3aed;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-hover: 0 6px 16px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06);
+    --bg-body:   #fafafa;
+    --bg-card:   #ffffff;
+    --bg-panel:  #ffffff;
+    --bg-hover:  rgba(0,0,0,0.04);
+    --bg-input:  rgba(0,0,0,0.04);
+    --shadow-card:       0 0 0 1px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-card-hover: 0 0 0 1px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.08);
+    --border-subtle: rgba(0,0,0,0.07);
+    --nav-bg:    rgba(250,250,250,0.88);
+    --text-primary:   #09090b;
+    --text-secondary: #71717a;
+    --text-muted:     #a1a1aa;
+    --accent:   #3b82f6;
+    --green:    #22c55e;
+    --orange:   #f59e0b;
+    --red:      #ef4444;
+    --purple:   #a855f7;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body, #root { height: 100%; }
   body {
     margin: 0; padding: 0;
-    background: var(--bg-base);
+    background: var(--bg-body);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+  body.light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); }
+  body.light ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes panelIn {
     from { transform: translateX(100%); }
@@ -58,34 +67,41 @@ const THEME_CSS = `
   @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes checkBounce {
     0%   { transform: scale(1); }
-    35%  { transform: scale(1.3); }
-    65%  { transform: scale(0.88); }
+    40%  { transform: scale(1.28); }
+    70%  { transform: scale(0.88); }
     100% { transform: scale(1); }
   }
-  @keyframes iconSpin {
-    from { transform: rotate(-60deg) scale(0.7); opacity: 0; }
+  @keyframes iconIn {
+    from { transform: rotate(-45deg) scale(0.6); opacity: 0; }
     to   { transform: rotate(0deg)   scale(1);   opacity: 1; }
   }
   input, button, select { font-family: inherit; }
   input:focus { outline: none; }
-  button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 `;
 
+export const STATUS_PILL = {
+  'New':         { bg: 'rgba(59,130,246,0.15)',  color: '#3b82f6' },
+  'In Progress': { bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b' },
+  'On Hold':     { bg: 'rgba(168,85,247,0.15)',  color: '#a855f7' },
+  'Complete':    { bg: 'rgba(34,197,94,0.15)',   color: '#22c55e' },
+};
+
 export const COLUMNS = [
-  { id: 'New',         label: 'New',         color: 'var(--accent-blue)'   },
-  { id: 'In Progress', label: 'In Progress', color: 'var(--accent-orange)' },
-  { id: 'On Hold',     label: 'On Hold',     color: 'var(--accent-purple)' },
-  { id: 'Complete',    label: 'Complete',    color: 'var(--accent-green)'  },
+  { id: 'New',         label: 'New',         color: '#3b82f6' },
+  { id: 'In Progress', label: 'In Progress', color: '#f59e0b' },
+  { id: 'On Hold',     label: 'On Hold',     color: '#a855f7' },
+  { id: 'Complete',    label: 'Complete',    color: '#22c55e' },
 ];
 
 export const ASSIGNEE_COLORS = {
-  Roman:     'var(--accent-blue)',
-  Anton:     'var(--accent-orange)',
-  Cory:      'var(--accent-green)',
-  Mihael:    'var(--accent-red)',
-  Dino:      'var(--accent-purple)',
-  Daniel:    '#0891b2',
-  Alexandra: '#db2777',
+  Roman:     '#3b82f6',
+  Anton:     '#f59e0b',
+  Cory:      '#22c55e',
+  Mihael:    '#ef4444',
+  Dino:      '#a855f7',
+  Daniel:    '#06b6d4',
+  Alexandra: '#ec4899',
 };
 
 export function initials(name = '') {
@@ -95,14 +111,14 @@ export function initials(name = '') {
 }
 
 export function assigneeColor(name) {
-  if (!name || /^\d+$/.test(String(name))) return 'var(--text-muted)';
-  return ASSIGNEE_COLORS[name] || 'var(--text-muted)';
+  if (!name || /^\d+$/.test(String(name))) return '#52525b';
+  return ASSIGNEE_COLORS[name] || '#52525b';
 }
 
-export function clientLabel(client) {
-  if (!client) return '—';
-  if (/^\d+$/.test(String(client))) return `Client #${client}`;
-  return String(client);
+export function clientLabel(val) {
+  if (!val) return '—';
+  if (/^\d+$/.test(String(val))) return `Client #${val}`;
+  return String(val);
 }
 
 export function isOverdue(dateStr) {
@@ -119,31 +135,27 @@ export function fmtDate(dateStr) {
 }
 
 export function priorityColor(p) {
-  return (
-    { High: 'var(--accent-red)', Medium: 'var(--accent-orange)', Low: 'var(--accent-blue)' }[p]
-    || 'var(--text-muted)'
-  );
+  return { High: '#ef4444', Medium: '#f59e0b', Low: '#3b82f6' }[p] || '#52525b';
 }
 
 export function statusColor(s) {
-  return (
-    {
-      Complete:      'var(--accent-green)',
-      'In Progress': 'var(--accent-orange)',
-      New:           'var(--accent-blue)',
-      'On Hold':     'var(--accent-purple)',
-    }[s] || 'var(--text-muted)'
-  );
+  return STATUS_PILL[s]?.color || '#52525b';
 }
 
-export function progressColor(pct) {
-  if (pct >= 100) return 'var(--accent-green)';
-  if (pct > 60)   return 'var(--accent-orange)';
-  return 'var(--accent-blue)';
+export function progressBarColor(pct) {
+  if (pct >= 100) return '#22c55e';
+  if (pct > 60)   return '#f59e0b';
+  return '#3b82f6';
 }
 
-const STYLE_ID = 'nero-theme-css';
-const STORAGE_KEY = 'nero-theme';
+function injectFont() {
+  if (typeof document === 'undefined' || document.getElementById(FONT_ID)) return;
+  const link = document.createElement('link');
+  link.id   = FONT_ID;
+  link.rel  = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+  document.head.appendChild(link);
+}
 
 function injectStyles() {
   if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return;
@@ -153,23 +165,25 @@ function injectStyles() {
   document.head.appendChild(el);
 }
 
-function applyBodyTheme(theme) {
+function applyTheme(theme) {
   if (typeof document === 'undefined') return;
   document.body.classList.toggle('light', theme === 'light');
 }
 
 export function useTheme() {
   const [theme, setTheme] = useState(() => {
+    injectFont();
     injectStyles();
     const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     const t = saved === 'light' ? 'light' : 'dark';
-    applyBodyTheme(t);
+    applyTheme(t);
     return t;
   });
 
   useEffect(() => {
+    injectFont();
     injectStyles();
-    applyBodyTheme(theme);
+    applyTheme(theme);
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 

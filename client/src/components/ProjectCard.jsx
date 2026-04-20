@@ -1,22 +1,15 @@
 import { useState } from 'react';
 import {
   assigneeColor, initials, clientLabel,
-  isOverdue, fmtDate, priorityColor, progressColor,
+  isOverdue, fmtDate, priorityColor, progressBarColor, STATUS_PILL,
 } from '../theme.js';
 
-const STATUS_BG = {
-  'New':         'var(--accent-blue)',
-  'In Progress': 'var(--accent-orange)',
-  'On Hold':     'var(--accent-purple)',
-  'Complete':    'var(--accent-green)',
-};
-
-function Avatar({ name, size = 20 }) {
+function Avatar({ name, size = 18 }) {
   const isNumeric = !name || /^\d+$/.test(String(name));
   return (
     <div title={name} style={{
       width: size, height: size, borderRadius: '50%',
-      background: isNumeric ? 'var(--border-hover)' : assigneeColor(name),
+      background: isNumeric ? 'var(--bg-hover)' : assigneeColor(name),
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: Math.round(size * 0.42), fontWeight: 600,
       color: '#fff', flexShrink: 0, letterSpacing: '-0.3px',
@@ -31,10 +24,8 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
   const [dragging, setDragging] = useState(false);
 
   const pct = Math.min(100, project.tasksDone || 0);
-  const hours = project.tasksTotal || 0;
   const overdue = isOverdue(project.dueDate);
-  const hasTags = project.tags?.length > 0;
-  const isActive = hovered && !dragging;
+  const pill = STATUS_PILL[project.status] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
 
   return (
     <div
@@ -46,95 +37,77 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
       onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--bg-card)',
-        border: `1px solid ${isActive ? 'var(--border-hover)' : 'var(--border)'}`,
         borderRadius: 8,
-        padding: 14,
+        padding: 12,
         cursor: dragging ? 'grabbing' : 'grab',
-        opacity: dragging ? 0.45 : 1,
-        transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
-        boxShadow: isActive ? 'var(--shadow-hover)' : 'var(--shadow)',
-        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 150ms ease',
+        opacity: dragging ? 0.4 : 1,
+        boxShadow: hovered && !dragging
+          ? 'var(--shadow-card-hover)'
+          : 'var(--shadow-card)',
+        transform: hovered && !dragging ? 'translateY(-1px)' : 'translateY(0)',
+        transition: 'box-shadow 180ms ease, transform 180ms ease',
         userSelect: 'none',
       }}
     >
-      {/* Row 1: priority dot + client */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      {/* Row 1: client + due date */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', marginBottom: 5,
+      }}>
         <span style={{
-          width: 6, height: 6, borderRadius: '50%',
-          background: priorityColor(project.priority), flexShrink: 0,
-        }} />
-        <span style={{
-          fontSize: 11, color: 'var(--text-muted)',
+          fontSize: 10, color: 'var(--text-muted)',
           textTransform: 'uppercase', letterSpacing: '0.05em',
-          fontWeight: 500, flex: 1,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap', flex: 1, marginRight: 6,
         }}>{clientLabel(project.client)}</span>
+        <span style={{
+          fontSize: 10,
+          color: overdue ? 'var(--red)' : 'var(--text-muted)',
+          fontWeight: overdue ? 500 : 400,
+          flexShrink: 0,
+        }}>{fmtDate(project.dueDate)}</span>
       </div>
 
       {/* Row 2: project name */}
       <div style={{
-        fontSize: 14, fontWeight: 600,
+        fontSize: 13, fontWeight: 500,
         color: 'var(--text-primary)',
-        lineHeight: 1.35, marginBottom: 8,
+        lineHeight: 1.4, marginBottom: 8,
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
       }}>{project.name}</div>
 
-      {/* Row 3: status pill + optional tags */}
+      {/* Row 3: status pill + avatar */}
       <div style={{
         display: 'flex', alignItems: 'center',
-        gap: 5, flexWrap: 'wrap', marginBottom: 10,
+        justifyContent: 'space-between', marginBottom: pct > 0 ? 8 : 0,
       }}>
         <span style={{
-          background: STATUS_BG[project.status] || 'var(--text-muted)',
-          color: '#fff', borderRadius: 9999,
-          padding: '2px 10px', fontSize: 10, fontWeight: 700,
+          background: pill.bg,
+          color: pill.color,
+          borderRadius: 9999,
+          padding: '2px 9px',
+          fontSize: 10, fontWeight: 600,
           letterSpacing: '0.02em', whiteSpace: 'nowrap',
         }}>{project.status}</span>
-        {hasTags && project.tags.map(t => (
-          <span key={t} style={{
-            border: '1px solid var(--border)', borderRadius: 5,
-            padding: '1px 7px', fontSize: 10, color: 'var(--text-secondary)',
-          }}>{t}</span>
-        ))}
+        <Avatar name={project.assignee} size={18} />
       </div>
 
-      {/* Row 4: progress bar + percentage */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Row 4: progress bar (only if > 0) */}
+      {pct > 0 && (
+        <div style={{
+          height: 3, background: 'var(--border-subtle)',
+          borderRadius: 9999, overflow: 'hidden',
+        }}>
           <div style={{
-            flex: 1, height: 4, background: 'var(--border)',
-            borderRadius: 9999, overflow: 'hidden',
-          }}>
-            <div style={{
-              height: '100%', width: `${pct}%`,
-              background: progressColor(pct),
-              borderRadius: 9999, transition: 'width .4s ease',
-            }} />
-          </div>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, width: 28, textAlign: 'right' }}>
-            {pct}%
-          </span>
+            height: '100%', width: `${pct}%`,
+            background: progressBarColor(pct),
+            borderRadius: 9999, transition: 'width .4s ease',
+          }} />
         </div>
-      </div>
-
-      {/* Row 5: task count + hours | avatar + due date */}
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', gap: 6,
-      }}>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          {hours}h est.
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-          <Avatar name={project.assignee} size={20} />
-          <span style={{
-            fontSize: 11,
-            color: overdue ? 'var(--accent-red)' : 'var(--text-muted)',
-            fontWeight: overdue ? 500 : 400,
-          }}>
-            {overdue ? '⚠ ' : ''}{fmtDate(project.dueDate)}
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

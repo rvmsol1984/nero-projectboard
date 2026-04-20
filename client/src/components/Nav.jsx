@@ -1,22 +1,3 @@
-function SunIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4"/>
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-    </svg>
-  );
-}
-
 function RefreshIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -29,92 +10,89 @@ function RefreshIcon() {
   );
 }
 
+function SunIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  );
+}
+
 function IconBtn({ onClick, title, children }) {
   return (
     <button
       onClick={onClick}
       title={title}
       style={{
-        background: 'transparent',
-        border: '1px solid var(--border)',
-        borderRadius: 7,
-        color: 'var(--text-secondary)',
-        cursor: 'pointer',
-        padding: '5px 8px',
+        width: 28, height: 28, borderRadius: 6,
+        background: 'transparent', border: 'none',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        lineHeight: 0,
-        transition: 'border-color .15s, color .15s, background .15s',
+        color: 'var(--text-secondary)', cursor: 'pointer',
+        transition: 'background .12s, color .12s',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = 'var(--border-hover)';
+        e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
         e.currentTarget.style.color = 'var(--text-primary)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'var(--border)';
+        e.currentTarget.style.background = 'transparent';
         e.currentTarget.style.color = 'var(--text-secondary)';
       }}
-    >
-      {children}
-    </button>
+    >{children}</button>
   );
 }
 
 export default function Nav({ counts, theme, onToggleTheme, onRefresh }) {
+  const stats = `${counts.total} projects · ${counts.active} active · ${counts.done} done`;
+
   return (
     <nav style={{
-      height: 48,
-      borderBottom: '1px solid var(--border)',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 20px',
       position: 'sticky', top: 0, zIndex: 100,
-      background: 'var(--bg-base)',
+      height: 48,
+      background: 'var(--nav-bg)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--border-subtle)',
+      display: 'flex', alignItems: 'center',
+      padding: '0 20px', gap: 10,
     }}>
-      {/* Left: logo + name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 28, height: 28,
-          background: 'var(--accent-blue)',
-          borderRadius: 8,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 700, color: '#fff',
-          letterSpacing: '-0.5px', flexShrink: 0,
-        }}>N</div>
-        <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-          NERO
-        </span>
-        <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}>
-          ProjectBoard
-        </span>
-      </div>
+      <div style={{
+        width: 26, height: 26, borderRadius: 6,
+        background: 'var(--accent)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
+        letterSpacing: '-0.3px',
+      }}>N</div>
 
-      {/* Right: stats + actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        {[
-          { label: 'TOTAL',  val: counts.total,  color: 'var(--text-primary)'   },
-          { label: 'ACTIVE', val: counts.active, color: 'var(--accent-orange)'  },
-          { label: 'DONE',   val: counts.done,   color: 'var(--accent-green)'   },
-        ].map(({ label, val, color }) => (
-          <div key={label} style={{ textAlign: 'center', lineHeight: 1 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.07em', marginBottom: 2 }}>
-              {label}
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color }}>{val}</div>
-          </div>
-        ))}
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
+        NERO
+      </span>
+      <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 300 }}>/</span>
+      <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 400 }}>
+        ProjectBoard
+      </span>
 
-        <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
+      <div style={{ flex: 1 }} />
 
-        <IconBtn onClick={onToggleTheme} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
-          {/* key forces re-mount → re-triggers iconSpin animation */}
-          <span key={theme} style={{ display: 'flex', animation: 'iconSpin 300ms ease' }}>
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          </span>
-        </IconBtn>
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{stats}</span>
 
-        <IconBtn onClick={onRefresh} title="Refresh">
-          <RefreshIcon />
-        </IconBtn>
-      </div>
+      <div style={{ width: 1, height: 16, background: 'var(--border-subtle)', margin: '0 4px' }} />
+
+      <IconBtn title="Refresh" onClick={onRefresh}><RefreshIcon /></IconBtn>
+      <IconBtn title={theme === 'dark' ? 'Light mode' : 'Dark mode'} onClick={onToggleTheme}>
+        {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+      </IconBtn>
     </nav>
   );
 }
