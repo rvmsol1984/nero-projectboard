@@ -3,35 +3,39 @@ import { useState, useEffect } from 'react';
 const THEME_CSS = `
   :root {
     --bg-base: #0d1117;
-    --bg-card: #1c2128;
-    --bg-hover: #21262d;
+    --bg-card: #161b22;
+    --bg-hover: #1c2128;
+    --bg-panel: #13161c;
     --border: #30363d;
     --border-hover: #484f58;
     --text-primary: #e6edf3;
-    --text-secondary: #7d8590;
-    --text-muted: #484f58;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
     --accent-blue: #2f81f7;
     --accent-green: #3fb950;
     --accent-orange: #d29922;
     --accent-red: #f85149;
     --accent-purple: #8957e5;
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-hover: 0 6px 16px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
   }
   body.light {
     --bg-base: #f6f8fa;
     --bg-card: #ffffff;
-    --bg-hover: #f0f2f5;
-    --border: #d0d7de;
-    --border-hover: #afb8c1;
-    --text-primary: #1f2328;
-    --text-secondary: #656d76;
-    --text-muted: #9198a1;
-    --accent-blue: #0969da;
-    --accent-green: #1a7f37;
-    --accent-orange: #9a6700;
-    --accent-red: #d1242f;
-    --accent-purple: #8250df;
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
+    --bg-hover: #f3f4f6;
+    --bg-panel: #ffffff;
+    --border: #e5e7eb;
+    --border-hover: #d1d5db;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --accent-blue: #2563eb;
+    --accent-green: #16a34a;
+    --accent-orange: #d97706;
+    --accent-red: #dc2626;
+    --accent-purple: #7c3aed;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-hover: 0 6px 16px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06);
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body, #root { height: 100%; }
@@ -43,15 +47,25 @@ const THEME_CSS = `
     -webkit-font-smoothing: antialiased;
   }
   ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0.6; }
-    to   { transform: translateX(0);    opacity: 1; }
+  @keyframes panelIn {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
   }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes checkBounce {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.3); }
+    65%  { transform: scale(0.88); }
+    100% { transform: scale(1); }
+  }
+  @keyframes iconSpin {
+    from { transform: rotate(-60deg) scale(0.7); opacity: 0; }
+    to   { transform: rotate(0deg)   scale(1);   opacity: 1; }
+  }
   input, button, select { font-family: inherit; }
   input:focus { outline: none; }
   button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
@@ -70,8 +84,8 @@ export const ASSIGNEE_COLORS = {
   Cory:      'var(--accent-green)',
   Mihael:    'var(--accent-red)',
   Dino:      'var(--accent-purple)',
-  Daniel:    '#1abc9c',
-  Alexandra: '#e91e8c',
+  Daniel:    '#0891b2',
+  Alexandra: '#db2777',
 };
 
 export function initials(name = '') {
@@ -81,10 +95,14 @@ export function initials(name = '') {
 }
 
 export function assigneeColor(name) {
-  if (!name || typeof name === 'number' || /^\d+$/.test(String(name))) {
-    return 'var(--text-muted)';
-  }
+  if (!name || /^\d+$/.test(String(name))) return 'var(--text-muted)';
   return ASSIGNEE_COLORS[name] || 'var(--text-muted)';
+}
+
+export function clientLabel(client) {
+  if (!client) return '—';
+  if (/^\d+$/.test(String(client))) return `Client #${client}`;
+  return String(client);
 }
 
 export function isOverdue(dateStr) {
@@ -120,7 +138,7 @@ export function statusColor(s) {
 
 export function progressColor(pct) {
   if (pct >= 100) return 'var(--accent-green)';
-  if (pct > 60)  return 'var(--accent-orange)';
+  if (pct > 60)   return 'var(--accent-orange)';
   return 'var(--accent-blue)';
 }
 
@@ -156,6 +174,5 @@ export function useTheme() {
   }, [theme]);
 
   const toggle = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
-
   return { theme, toggle };
 }

@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { assigneeColor, initials, isOverdue, fmtDate, priorityColor, progressColor } from '../theme.js';
+import {
+  assigneeColor, initials, clientLabel,
+  isOverdue, fmtDate, priorityColor, progressColor,
+} from '../theme.js';
+
+const STATUS_BG = {
+  'New':         'var(--accent-blue)',
+  'In Progress': 'var(--accent-orange)',
+  'On Hold':     'var(--accent-purple)',
+  'Complete':    'var(--accent-green)',
+};
 
 function Avatar({ name, size = 20 }) {
   const isNumeric = !name || /^\d+$/.test(String(name));
@@ -9,40 +19,11 @@ function Avatar({ name, size = 20 }) {
       background: isNumeric ? 'var(--border-hover)' : assigneeColor(name),
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: Math.round(size * 0.42), fontWeight: 600,
-      color: '#fff', flexShrink: 0,
+      color: '#fff', flexShrink: 0, letterSpacing: '-0.3px',
     }}>
       {initials(name)}
     </div>
   );
-}
-
-const STATUS_PILL_BG = {
-  'New':         '#0073ea',
-  'In Progress': '#fdab3d',
-  'On Hold':     '#a25ddc',
-  'Complete':    '#00c875',
-};
-
-function StatusPill({ status }) {
-  return (
-    <span style={{
-      background: STATUS_PILL_BG[status] || '#888',
-      color: '#fff',
-      borderRadius: 9999,
-      padding: '3px 10px',
-      fontSize: 10,
-      fontWeight: 700,
-      whiteSpace: 'nowrap',
-      letterSpacing: '0.1px',
-      lineHeight: 1,
-    }}>{status}</span>
-  );
-}
-
-function clientLabel(client) {
-  if (!client) return '—';
-  if (/^\d+$/.test(String(client))) return `Client #${client}`;
-  return client;
 }
 
 export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }) {
@@ -53,6 +34,7 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
   const hours = project.tasksTotal || 0;
   const overdue = isOverdue(project.dueDate);
   const hasTags = project.tags?.length > 0;
+  const isActive = hovered && !dragging;
 
   return (
     <div
@@ -63,29 +45,27 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered && !dragging ? 'var(--bg-hover)' : 'var(--bg-card)',
-        border: `1px solid ${hovered && !dragging ? 'var(--border-hover)' : 'var(--border)'}`,
-        borderRadius: 6,
-        padding: '10px 11px',
-        marginBottom: 7,
+        background: 'var(--bg-card)',
+        border: `1px solid ${isActive ? 'var(--border-hover)' : 'var(--border)'}`,
+        borderRadius: 8,
+        padding: 14,
         cursor: dragging ? 'grabbing' : 'grab',
-        transform: hovered && !dragging ? 'translateY(-1px)' : 'none',
         opacity: dragging ? 0.45 : 1,
-        boxShadow: 'var(--shadow-card)',
-        transition: 'transform .1s, border-color .1s, background .1s, box-shadow .1s',
+        transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: isActive ? 'var(--shadow-hover)' : 'var(--shadow)',
+        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 150ms ease',
         userSelect: 'none',
       }}
     >
       {/* Row 1: priority dot + client */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: priorityColor(project.priority),
-          flexShrink: 0,
+          background: priorityColor(project.priority), flexShrink: 0,
         }} />
         <span style={{
-          fontSize: 10, color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: '0.5px',
+          fontSize: 11, color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: '0.05em',
           fontWeight: 500, flex: 1,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{clientLabel(project.client)}</span>
@@ -93,53 +73,58 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
 
       {/* Row 2: project name */}
       <div style={{
-        fontSize: 14, fontWeight: 500,
+        fontSize: 14, fontWeight: 600,
         color: 'var(--text-primary)',
-        lineHeight: 1.3, marginBottom: 6,
+        lineHeight: 1.35, marginBottom: 8,
       }}>{project.name}</div>
 
-      {/* Row 3: status pill + tags (only if tags exist) */}
+      {/* Row 3: status pill + optional tags */}
       <div style={{
         display: 'flex', alignItems: 'center',
-        gap: 5, flexWrap: 'wrap',
-        marginBottom: hasTags ? 7 : 6,
+        gap: 5, flexWrap: 'wrap', marginBottom: 10,
       }}>
-        <StatusPill status={project.status} />
+        <span style={{
+          background: STATUS_BG[project.status] || 'var(--text-muted)',
+          color: '#fff', borderRadius: 9999,
+          padding: '2px 10px', fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.02em', whiteSpace: 'nowrap',
+        }}>{project.status}</span>
         {hasTags && project.tags.map(t => (
           <span key={t} style={{
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            padding: '1px 6px',
-            fontSize: 10,
-            color: 'var(--text-secondary)',
+            border: '1px solid var(--border)', borderRadius: 5,
+            padding: '1px 7px', fontSize: 10, color: 'var(--text-secondary)',
           }}>{t}</span>
         ))}
       </div>
 
-      {/* Row 4: progress bar */}
-      <div style={{ marginBottom: 7 }}>
-        <div style={{
-          height: 6, background: 'var(--border)',
-          borderRadius: 3, overflow: 'hidden',
-        }}>
+      {/* Row 4: progress bar + percentage */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            height: '100%', width: `${pct}%`,
-            background: progressColor(pct),
-            borderRadius: 3,
-            transition: 'width .3s',
-          }} />
+            flex: 1, height: 4, background: 'var(--border)',
+            borderRadius: 9999, overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', width: `${pct}%`,
+              background: progressColor(pct),
+              borderRadius: 9999, transition: 'width .4s ease',
+            }} />
+          </div>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0, width: 28, textAlign: 'right' }}>
+            {pct}%
+          </span>
         </div>
       </div>
 
-      {/* Row 5: pct + hours | avatar + due date */}
+      {/* Row 5: task count + hours | avatar + due date */}
       <div style={{
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', gap: 6,
       }}>
         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          {pct}% · {hours}h
+          {hours}h est.
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
           <Avatar name={project.assignee} size={20} />
           <span style={{
             fontSize: 11,

@@ -2,16 +2,38 @@ const express = require('express');
 const router = express.Router();
 const atClient = require('../middleware/autotask');
 
-router.get('/:projectId', async (req, res) => {
-  const { projectId } = req.params;
+async function getPhaseNames(projectId) {
   try {
-    const { data } = await atClient.get('/Tasks/query', {
+    const { data } = await atClient.get('/Projects/phases/query', {
       params: {
         search: JSON.stringify({
           filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }],
         }),
       },
     });
+    const map = {};
+    (data.items || []).forEach(p => {
+      map[p.id] = p.description || p.title || p.name || `Phase ${p.id}`;
+    });
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+router.get('/:projectId', async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const [{ data }, phaseMap] = await Promise.all([
+      atClient.get('/Tasks/query', {
+        params: {
+          search: JSON.stringify({
+            filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }],
+          }),
+        },
+      }),
+      getPhaseNames(projectId),
+    ]);
 
     const tasks = (data.items || []).map(t => ({
       id: t.id,
@@ -20,7 +42,7 @@ router.get('/:projectId', async (req, res) => {
       assignee: t.assignedResourceID,
       priority: mapTaskPriority(t.priority),
       dueDate: t.dueDateTime,
-      phase: t.phaseID ? String(t.phaseID) : 'General',
+      phase: phaseMap[t.phaseID] || (t.phaseID ? `Phase ${t.phaseID}` : 'General'),
       hours: t.hoursWorked || 0,
       estimatedHours: t.estimatedHours || 0,
     }));

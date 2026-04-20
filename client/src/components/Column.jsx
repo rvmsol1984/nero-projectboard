@@ -11,51 +11,45 @@ export default function Column({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       style={{
-        background: dragOver ? 'var(--bg-hover)' : 'transparent',
-        borderRadius: 8,
+        borderRadius: 10,
         border: `1px solid ${dragOver ? 'var(--border-hover)' : 'var(--border)'}`,
-        transition: 'border-color .15s, background .15s',
-        minHeight: 60,
-        display: 'flex',
-        flexDirection: 'column',
+        background: dragOver ? 'var(--bg-hover)' : 'transparent',
+        transition: 'border-color .15s, background .2s',
+        minHeight: 80,
+        display: 'flex', flexDirection: 'column',
       }}
     >
-      {/* Column header */}
+      {/* Header */}
       <div style={{
-        padding: '10px 12px 8px',
-        borderBottom: `1px solid var(--border)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        flexShrink: 0,
+        padding: '10px 14px 9px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            width: 3, height: 13, borderRadius: 2,
+            width: 4, height: 14, borderRadius: 2,
             background: column.color, flexShrink: 0,
           }} />
           <span style={{
             fontSize: 11, fontWeight: 600,
             color: 'var(--text-secondary)',
             textTransform: 'uppercase',
-            letterSpacing: '0.8px',
+            letterSpacing: '0.07em',
           }}>{column.label}</span>
         </div>
         <span style={{
           background: 'var(--bg-hover)',
           border: '1px solid var(--border)',
-          borderRadius: 10,
-          padding: '1px 7px',
-          fontSize: 11,
+          borderRadius: 20,
+          padding: '1px 8px',
+          fontSize: 11, fontWeight: 600,
           color: 'var(--text-muted)',
-          fontWeight: 500,
-          flexShrink: 0,
         }}>{projects.length}</span>
       </div>
 
-      {/* Cards */}
-      <div style={{ padding: '8px 8px 4px', flex: 1 }}>
+      {/* Card list */}
+      <div style={{ padding: '10px 8px 8px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
         {projects.map(p => (
           <ProjectCard
             key={p.id}

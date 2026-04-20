@@ -5,14 +5,24 @@ import Nav from './components/Nav.jsx';
 import Column from './components/Column.jsx';
 import Panel from './components/Panel.jsx';
 
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+  );
+}
+
 function Spinner() {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '60vh', flexDirection: 'column', gap: 12,
+      height: '60vh', flexDirection: 'column', gap: 14,
     }}>
       <div style={{
-        width: 26, height: 26, borderRadius: '50%',
+        width: 28, height: 28, borderRadius: '50%',
         border: '2.5px solid var(--border)',
         borderTopColor: 'var(--accent-blue)',
         animation: 'spin .8s linear infinite',
@@ -33,11 +43,9 @@ function ErrorState({ message, onRetry }) {
       <button onClick={onRetry} style={{
         background: 'var(--bg-card)',
         border: '1px solid var(--border)',
-        borderRadius: 6,
-        color: 'var(--text-primary)',
-        padding: '8px 18px',
-        fontSize: 13, fontWeight: 500,
-        cursor: 'pointer',
+        borderRadius: 7, color: 'var(--text-primary)',
+        padding: '8px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+        transition: 'border-color .15s',
       }}>Retry</button>
     </div>
   );
@@ -46,21 +54,19 @@ function ErrorState({ message, onRetry }) {
 export default function App() {
   const { theme, toggle: toggleTheme } = useTheme();
 
-  const [projects, setProjects]         = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState(null);
-  const [search, setSearch]             = useState('');
+  const [projects, setProjects]             = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState(null);
+  const [search, setSearch]                 = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('All');
-  const [dragItem, setDragItem]         = useState(null);
-  const [dragOverCol, setDragOverCol]   = useState(null);
+  const [dragItem, setDragItem]             = useState(null);
+  const [dragOverCol, setDragOverCol]       = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
 
   const fetchProjects = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const data = await api.getProjects();
-      setProjects(data);
+      setProjects(await api.getProjects());
     } catch (e) {
       setError(e.message);
     } finally {
@@ -70,10 +76,9 @@ export default function App() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  const assignees = [
-    'All',
-    ...Array.from(new Set(projects.map(p => p.assignee).filter(Boolean))),
-  ];
+  const assignees = ['All', ...Array.from(new Set(
+    projects.map(p => p.assignee).filter(Boolean)
+  ))];
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase();
@@ -113,26 +118,34 @@ export default function App() {
 
       {/* Toolbar */}
       <div style={{
-        padding: '9px 20px',
-        display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
+        padding: '10px 20px',
+        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-base)',
         position: 'sticky', top: 48, zIndex: 50,
       }}>
-        <input
-          placeholder="Search projects or clients…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            color: 'var(--text-primary)',
-            padding: '7px 12px',
-            fontSize: 13, width: 240,
-          }}
-        />
+        {/* Search */}
+        <div style={{ position: 'relative' }}>
+          <SearchIcon />
+          <input
+            placeholder="Search projects or clients…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 7,
+              color: 'var(--text-primary)',
+              padding: '7px 12px 7px 32px',
+              fontSize: 13, width: 250,
+              transition: 'border-color .15s',
+            }}
+            onFocus={e => e.target.style.borderColor = 'var(--border-hover)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+          />
+        </div>
 
+        {/* Assignee pills */}
         {assignees.map(a => {
           const active = assigneeFilter === a;
           const isNumericId = a !== 'All' && /^\d+$/.test(String(a));
@@ -144,15 +157,11 @@ export default function App() {
               style={{
                 background: active ? 'var(--bg-hover)' : 'var(--bg-card)',
                 border: `1px solid ${active ? 'var(--border-hover)' : 'var(--border)'}`,
-                borderRadius: 20,
-                padding: '4px 11px',
-                fontSize: 12,
+                borderRadius: 20, padding: '4px 12px', fontSize: 12,
                 color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 5,
-                fontWeight: active ? 500 : 400,
-                transition: 'all .1s',
-                maxWidth: 140,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                fontWeight: active ? 500 : 400, maxWidth: 140,
+                transition: 'all .12s',
               }}
             >
               {a !== 'All' && (
@@ -170,11 +179,14 @@ export default function App() {
 
         <button style={{
           marginLeft: 'auto',
-          background: 'var(--accent-blue)',
-          border: 'none', borderRadius: 6,
-          color: '#fff', padding: '7px 14px',
-          fontSize: 13, fontWeight: 500, cursor: 'pointer',
-        }}>+ New Project</button>
+          background: 'var(--accent-blue)', border: 'none',
+          borderRadius: 7, color: '#fff',
+          padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          transition: 'filter .15s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.12)'}
+          onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+        >+ New Project</button>
       </div>
 
       {/* Board */}
@@ -182,10 +194,8 @@ export default function App() {
         <ErrorState message={error} onRetry={fetchProjects} />
       ) : (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 14, padding: '16px 20px',
-          alignItems: 'start',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 16, padding: '18px 20px', alignItems: 'start',
         }}>
           {COLUMNS.map(col => (
             <Column
@@ -205,10 +215,7 @@ export default function App() {
       )}
 
       {selectedProject && (
-        <Panel
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-        />
+        <Panel project={selectedProject} onClose={() => setSelectedProject(null)} />
       )}
     </div>
   );
