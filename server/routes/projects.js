@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
     const { data } = await atClient.get('/Projects/query', {
       params: {
         search: JSON.stringify({
-          filter: [{ field: 'status', op: 'notEqual', value: 5 }],
+          filter: [{ field: 'status', op: 'notEqual', value: 6 }],
         }),
       },
     });
