@@ -21,7 +21,7 @@ jobs:
 
       - name: Install client dependencies
         working-directory: client
-        run: npm ci
+        run: npm install
 
       - name: Build client
         working-directory: client
@@ -49,6 +49,6 @@ jobs:
             set -e
             cd /root/nero-projectboard
             git pull origin main
-            cd server && npm ci --omit=dev
+            cd server && npm install --omit=dev
             pm2 reload nero-projectboard || pm2 start ecosystem.config.js --env production
             echo "Deploy complete"
