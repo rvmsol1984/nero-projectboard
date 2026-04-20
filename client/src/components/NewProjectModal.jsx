@@ -80,7 +80,8 @@ export default function NewProjectModal({ onClose, onCreated }) {
   const [name, setName] = useState('');
   const [companySearch, setCompanySearch] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [companyID, setCompanyID] = useState(null);
+  const [companyName, setCompanyName] = useState('');
   const [resourceSearch, setResourceSearch] = useState('');
   const [resourceResults, setResourceResults] = useState([]);
   const [selectedResource, setSelectedResource] = useState(null);
@@ -115,17 +116,19 @@ export default function NewProjectModal({ onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!name.trim()) { setError('Project name is required'); return; }
-    if (!selectedCompany) { setError('Please select a client'); return; }
+    if (!companyID) { setError('Please select a client'); return; }
     setLoading(true); setError(null);
     try {
-      await api.createProject({
+      const payload = {
         name: name.trim(),
-        companyID: selectedCompany.id,
+        companyID: companyID,
         assigneeID: selectedResource?.id || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         description: description.trim(),
-      });
+      };
+      console.log('[NewProjectModal] creating project:', payload);
+      await api.createProject(payload);
       onCreated();
       onClose();
     } catch (err) {
@@ -204,8 +207,11 @@ export default function NewProjectModal({ onClose, onCreated }) {
               label="Client *"
               searchValue={companySearch}
               onSearchChange={setCompanySearch}
-              selected={selectedCompany}
-              onSelect={setSelectedCompany}
+              selected={companyID ? { id: companyID, name: companyName } : null}
+              onSelect={c => {
+                if (c) { setCompanyID(c.id); setCompanyName(c.name); }
+                else   { setCompanyID(null); setCompanyName(''); }
+              }}
               results={companyResults}
               placeholder="Search company…"
             />
