@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
       client: p.companyName || String(p.companyID),
       status: mapStatus(p.status),
       priority: mapPriority(p.priority),
-      assignee: p.projectLeadResourceID,
+      assignee: String(p.projectLeadResourceID || ''),
       dueDate: p.endDateTime,
       tasksTotal: p.estimatedHours || 0,
       tasksDone: p.completedPercentage || 0,

@@ -33,12 +33,12 @@ const STATUS_COLORS = {
 };
 
 /* ─── Helpers ────────────────────────────────────────────────── */
-function initials(name) {
-  if (!name) return '?';
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+function initials(name = '') {
+  return String(name).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 }
 
 function assigneeColor(name) {
+  if (!name || typeof name === 'number' || /^\d+$/.test(String(name))) return '#555';
   return ASSIGNEE_COLORS[name] || '#555';
 }
 
