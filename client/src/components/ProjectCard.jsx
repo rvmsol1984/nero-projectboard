@@ -1,19 +1,24 @@
 import { useState } from 'react';
 import {
-  assigneeColor, initials, clientLabel,
-  isOverdue, fmtDate, priorityColor, progressBarColor, STATUS_PILL,
+  clientLabel, isOverdue, fmtDate, progressBarColor, STATUS_PILL,
 } from '../theme.js';
 
-function Avatar({ name, size = 18 }) {
+const AVATAR_COLORS = [
+  '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b',
+  '#10b981', '#ef4444', '#06b6d4', '#84cc16',
+];
+
+function Avatar({ name }) {
+  if (!name || /^\d+$/.test(String(name))) return null;
+  const color = AVATAR_COLORS[name.charCodeAt(0) % 8];
   return (
     <div title={name} style={{
-      width: size, height: size, borderRadius: '50%',
-      background: assigneeColor(name),
+      width: 18, height: 18, borderRadius: '50%',
+      background: color,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: Math.round(size * 0.42), fontWeight: 600,
-      color: '#fff', flexShrink: 0, letterSpacing: '-0.3px',
+      fontSize: 8, fontWeight: 700, color: '#fff', flexShrink: 0,
     }}>
-      {initials(name)}
+      {name[0].toUpperCase()}
     </div>
   );
 }
@@ -62,8 +67,7 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
         <span style={{
           fontSize: 10,
           color: overdue ? 'var(--red)' : 'var(--text-muted)',
-          fontWeight: overdue ? 500 : 400,
-          flexShrink: 0,
+          fontWeight: overdue ? 500 : 400, flexShrink: 0,
         }}>{fmtDate(project.dueDate)}</span>
       </div>
 
@@ -78,20 +82,25 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
         overflow: 'hidden',
       }}>{project.name}</div>
 
-      {/* Row 3: status pill + avatar */}
+      {/* Row 3: status pill + task count + avatar */}
       <div style={{
         display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: pct > 0 ? 8 : 0,
+        justifyContent: 'space-between',
+        marginBottom: pct > 0 ? 8 : 0,
       }}>
         <span style={{
-          background: pill.bg,
-          color: pill.color,
-          borderRadius: 9999,
-          padding: '2px 9px',
+          background: pill.bg, color: pill.color,
+          borderRadius: 9999, padding: '2px 9px',
           fontSize: 10, fontWeight: 600,
           letterSpacing: '0.02em', whiteSpace: 'nowrap',
         }}>{project.status}</span>
-        <Avatar name={project.assignee} size={18} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+            {project.tasksDone} of {project.tasksTotal} tasks
+          </span>
+          <Avatar name={project.assignee} />
+        </div>
       </div>
 
       {/* Row 4: progress bar (only if > 0) */}

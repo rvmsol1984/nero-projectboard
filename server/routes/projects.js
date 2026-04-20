@@ -2,23 +2,54 @@ const express = require('express');
 const router = express.Router();
 const atClient = require('../middleware/autotask');
 
+let companyMap = {};
+let resourceMap = {};
+let cacheExpiry = 0;
+
+async function refreshLookups() {
+  const now = Date.now();
+  if (now < cacheExpiry) return;
+  try {
+    const [companiesRes, resourcesRes] = await Promise.all([
+      atClient.get('/Companies/query', {
+        params: { search: JSON.stringify({ filter: [{ field: 'id', op: 'gt', value: 0 }] }) },
+      }),
+      atClient.get('/Resources/query', {
+        params: { search: JSON.stringify({ filter: [{ field: 'id', op: 'gt', value: 0 }] }) },
+      }),
+    ]);
+    const cm = {};
+    (companiesRes.data.items || []).forEach(c => { cm[c.id] = c.companyName; });
+    companyMap = cm;
+    const rm = {};
+    (resourcesRes.data.items || []).forEach(r => { rm[r.id] = r.firstName + ' ' + r.lastName; });
+    resourceMap = rm;
+    cacheExpiry = now + 10 * 60 * 1000;
+  } catch (err) {
+    console.error('[lookups] refresh error:', err.message);
+  }
+}
+
 router.get('/', async (req, res) => {
   try {
-    const { data } = await atClient.get('/Projects/query', {
-      params: {
-        search: JSON.stringify({
-          filter: [{ field: 'status', op: 'notEqual', value: 6 }],
-        }),
-      },
-    });
+    const [{ data }] = await Promise.all([
+      atClient.get('/Projects/query', {
+        params: {
+          search: JSON.stringify({
+            filter: [{ field: 'status', op: 'notEqual', value: 6 }],
+          }),
+        },
+      }),
+      refreshLookups(),
+    ]);
 
     const projects = (data.items || []).map(p => ({
       id: p.id,
       name: p.projectName,
-      client: p.companyName || String(p.companyID),
+      client: companyMap[p.companyID] || `Client #${p.companyID}`,
       status: mapStatus(p.status),
       priority: mapPriority(p.priority),
-      assignee: String(p.projectLeadResourceID || ''),
+      assignee: resourceMap[p.projectLeadResourceID] || String(p.projectLeadResourceID || ''),
       dueDate: p.endDateTime,
       tasksTotal: p.estimatedHours || 0,
       tasksDone: p.completedPercentage || 0,
