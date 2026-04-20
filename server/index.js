@@ -8,6 +8,7 @@ const projectsRouter = require('./routes/projects');
 const tasksRouter = require('./routes/tasks');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3010;
 
 app.use(helmet());
