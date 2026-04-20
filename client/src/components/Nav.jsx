@@ -46,7 +46,7 @@ const iconBtn = {
 export default function Nav({ counts, theme, onToggleTheme, onRefresh }) {
   return (
     <nav style={{
-      height: 56,
+      height: 48,
       borderBottom: '1px solid var(--border)',
       display: 'flex',
       alignItems: 'center',

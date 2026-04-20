@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 const THEME_CSS = `
   :root {
     --bg-base: #0d1117;
-    --bg-card: #161b22;
-    --bg-hover: #1c2128;
+    --bg-card: #1c2128;
+    --bg-hover: #21262d;
     --border: #30363d;
     --border-hover: #484f58;
     --text-primary: #e6edf3;
@@ -15,11 +15,12 @@ const THEME_CSS = `
     --accent-orange: #d29922;
     --accent-red: #f85149;
     --accent-purple: #8957e5;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3);
   }
   body.light {
-    --bg-base: #ffffff;
-    --bg-card: #f6f8fa;
-    --bg-hover: #eaeef2;
+    --bg-base: #f6f8fa;
+    --bg-card: #ffffff;
+    --bg-hover: #f0f2f5;
     --border: #d0d7de;
     --border-hover: #afb8c1;
     --text-primary: #1f2328;
@@ -30,6 +31,7 @@ const THEME_CSS = `
     --accent-orange: #9a6700;
     --accent-red: #d1242f;
     --accent-purple: #8250df;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body, #root { height: 100%; }
@@ -73,7 +75,9 @@ export const ASSIGNEE_COLORS = {
 };
 
 export function initials(name = '') {
-  return String(name).split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+  const s = String(name);
+  if (!s || /^\d+$/.test(s)) return '?';
+  return s.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 }
 
 export function assigneeColor(name) {
@@ -90,9 +94,10 @@ export function isOverdue(dateStr) {
 
 export function fmtDate(dateStr) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  });
+  const d = new Date(dateStr);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${mm}-${dd}-${d.getFullYear()}`;
 }
 
 export function priorityColor(p) {

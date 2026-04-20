@@ -5,8 +5,6 @@ export default function Column({
   dragOver, onDragOver, onDragLeave, onDrop,
   onDragStart, onDragEnd, onCardClick,
 }) {
-  const totalHours = projects.reduce((s, p) => s + (p.tasksTotal || 0), 0);
-
   return (
     <div
       onDragOver={onDragOver}
@@ -24,34 +22,25 @@ export default function Column({
     >
       {/* Column header */}
       <div style={{
-        padding: '11px 14px 9px',
+        padding: '10px 12px 8px',
         borderBottom: `1px solid var(--border)`,
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
         gap: 8,
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            width: 3, height: 14, borderRadius: 2,
-            background: column.color, flexShrink: 0, marginTop: 1,
+            width: 3, height: 13, borderRadius: 2,
+            background: column.color, flexShrink: 0,
           }} />
-          <div>
-            <div style={{
-              fontSize: 11, fontWeight: 600,
-              color: 'var(--text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.8px',
-              lineHeight: 1.2,
-            }}>{column.label}</div>
-            {totalHours > 0 && (
-              <div style={{
-                fontSize: 10, color: 'var(--text-muted)',
-                marginTop: 2, fontWeight: 400,
-              }}>{totalHours.toFixed(0)}h</div>
-            )}
-          </div>
+          <span style={{
+            fontSize: 11, fontWeight: 600,
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+          }}>{column.label}</span>
         </div>
         <span style={{
           background: 'var(--bg-hover)',

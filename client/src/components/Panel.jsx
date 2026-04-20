@@ -274,7 +274,7 @@ export default function Panel({ project, onClose }) {
                 <span style={{
                   fontSize: 10, color: 'var(--text-muted)',
                   textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 500,
-                }}>{project.client}</span>
+                }}>{/^\d+$/.test(String(project.client)) ? `Client #${project.client}` : project.client}</span>
                 <OutlineBadge color={priorityColor(project.priority)}>
                   {project.priority}
                 </OutlineBadge>

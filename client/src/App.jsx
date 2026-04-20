@@ -117,7 +117,7 @@ export default function App() {
         display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-base)',
-        position: 'sticky', top: 56, zIndex: 50,
+        position: 'sticky', top: 48, zIndex: 50,
       }}>
         <input
           placeholder="Search projects or clients…"
@@ -135,6 +135,8 @@ export default function App() {
 
         {assignees.map(a => {
           const active = assigneeFilter === a;
+          const isNumericId = a !== 'All' && /^\d+$/.test(String(a));
+          const label = isNumericId ? `#${String(a).slice(0, 8)}` : a;
           return (
             <button
               key={a}
@@ -143,13 +145,14 @@ export default function App() {
                 background: active ? 'var(--bg-hover)' : 'var(--bg-card)',
                 border: `1px solid ${active ? 'var(--border-hover)' : 'var(--border)'}`,
                 borderRadius: 20,
-                padding: '5px 12px',
+                padding: '4px 11px',
                 fontSize: 12,
                 color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                 cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6,
+                display: 'flex', alignItems: 'center', gap: 5,
                 fontWeight: active ? 500 : 400,
                 transition: 'all .1s',
+                maxWidth: 140,
               }}
             >
               {a !== 'All' && (
@@ -158,7 +161,9 @@ export default function App() {
                   background: assigneeColor(a), flexShrink: 0,
                 }} />
               )}
-              {a}
+              <span style={{
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{label}</span>
             </button>
           );
         })}
