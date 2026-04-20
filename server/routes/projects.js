@@ -101,18 +101,20 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { name, companyID, assigneeID, startDate, endDate, description } = req.body;
-  if (!name || !companyID) return res.status(400).json({ error: 'name and companyID required' });
+  const { name, companyID, assigneeID, startDate, endDate, description, projectType } = req.body;
+  const isInternal = projectType === 'internal';
+  if (!name || (!companyID && !isInternal)) return res.status(400).json({ error: 'name and companyID required' });
   try {
     const { data } = await atClient.post('/Projects', {
       projectName: name,
-      companyID: parseInt(companyID),
+      companyID: isInternal ? 193 : parseInt(companyID),
       projectLeadResourceID: assigneeID ? parseInt(assigneeID) : undefined,
       startDateTime: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
       endDateTime: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
       description: description || '',
       status: 1,
       estimatedHours: 0,
+      projectType: isInternal ? 4 : 5,
     });
     res.json({ id: data.itemId, ...req.body });
   } catch (err) {

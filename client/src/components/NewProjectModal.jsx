@@ -77,6 +77,7 @@ function SearchField({ label, searchValue, onSearchChange, selected, onSelect, r
 }
 
 export default function NewProjectModal({ onClose, onCreated }) {
+  const [projectType, setProjectType] = useState('client');
   const [name, setName] = useState('');
   const [companySearch, setCompanySearch] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
@@ -116,16 +117,17 @@ export default function NewProjectModal({ onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!name.trim()) { setError('Project name is required'); return; }
-    if (!companyID) { setError('Please select a client'); return; }
+    if (projectType === 'client' && !companyID) { setError('Please select a client'); return; }
     setLoading(true); setError(null);
     try {
       const payload = {
         name: name.trim(),
-        companyID: companyID,
+        companyID: projectType === 'internal' ? 193 : companyID,
         assigneeID: selectedResource?.id || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         description: description.trim(),
+        projectType,
       };
       console.log('[NewProjectModal] creating project:', payload);
       await api.createProject(payload);
@@ -187,6 +189,29 @@ export default function NewProjectModal({ onClose, onCreated }) {
 
         {/* Body */}
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Project type toggle */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['client', 'internal'].map(t => {
+              const active = projectType === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setProjectType(t)}
+                  style={{
+                    background: active ? 'var(--accent)' : 'transparent',
+                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                    borderRadius: 9999, padding: '4px 14px',
+                    fontSize: 12, fontWeight: active ? 600 : 400,
+                    color: active ? '#fff' : 'var(--text-secondary)',
+                    cursor: 'pointer', transition: 'all .12s',
+                    textTransform: 'capitalize',
+                  }}
+                >{t}</button>
+              );
+            })}
+          </div>
+
           {/* Project name */}
           <div>
             <label style={labelStyle}>Project Name *</label>
@@ -203,18 +228,30 @@ export default function NewProjectModal({ onClose, onCreated }) {
 
           {/* Client + Tech */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <SearchField
-              label="Client *"
-              searchValue={companySearch}
-              onSearchChange={setCompanySearch}
-              selected={companyID ? { id: companyID, name: companyName } : null}
-              onSelect={c => {
-                if (c) { setCompanyID(c.id); setCompanyName(c.name); }
-                else   { setCompanyID(null); setCompanyName(''); }
-              }}
-              results={companyResults}
-              placeholder="Search company…"
-            />
+            {projectType === 'client' ? (
+              <SearchField
+                label="Client *"
+                searchValue={companySearch}
+                onSearchChange={setCompanySearch}
+                selected={companyID ? { id: companyID, name: companyName } : null}
+                onSelect={c => {
+                  if (c) { setCompanyID(c.id); setCompanyName(c.name); }
+                  else   { setCompanyID(null); setCompanyName(''); }
+                }}
+                results={companyResults}
+                placeholder="Search company…"
+              />
+            ) : (
+              <div>
+                <label style={labelStyle}>Client</label>
+                <div style={{
+                  fontSize: 12, color: 'var(--text-muted)',
+                  padding: '8px 10px',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 6, background: 'var(--bg-input)',
+                }}>NERO Consulting, Inc.</div>
+              </div>
+            )}
             <SearchField
               label="Tech"
               searchValue={resourceSearch}
