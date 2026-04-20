@@ -107,7 +107,7 @@ router.post('/', async (req, res) => {
   try {
     const { data } = await atClient.post('/Projects', {
       projectName: name,
-      companyID: isInternal ? 193 : parseInt(companyID),
+      companyID: isInternal ? 0 : parseInt(companyID),
       projectLeadResourceID: assigneeID ? parseInt(assigneeID) : undefined,
       startDateTime: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
       endDateTime: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 30*24*60*60*1000).toISOString(),
