@@ -31,6 +31,18 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
   const overdue = isOverdue(project.dueDate);
   const pill = STATUS_PILL[project.status] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
 
+  const clientDisplay = (() => {
+    const label = clientLabel(project.client);
+    if (!label || label === '—' || /^client #0/i.test(label)) return null;
+    return label;
+  })();
+  const dateDisplay = fmtDate(project.dueDate);
+  const showTopRow = clientDisplay || dateDisplay !== '—';
+
+  const taskCountText = project.tasksDone > 0 && project.tasksTotal === 100
+    ? `${project.tasksDone}% complete`
+    : null;
+
   return (
     <div
       draggable
@@ -54,22 +66,29 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
       }}
     >
       {/* Row 1: client + due date */}
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: 5,
-      }}>
-        <span style={{
-          fontSize: 10, color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: '0.05em',
-          fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap', flex: 1, marginRight: 6,
-        }}>{clientLabel(project.client)}</span>
-        <span style={{
-          fontSize: 10,
-          color: overdue ? 'var(--red)' : 'var(--text-muted)',
-          fontWeight: overdue ? 500 : 400, flexShrink: 0,
-        }}>{fmtDate(project.dueDate)}</span>
-      </div>
+      {showTopRow && (
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', marginBottom: 5,
+        }}>
+          {clientDisplay && (
+            <span style={{
+              fontSize: 10, color: 'var(--text-muted)',
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+              fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap', flex: 1, marginRight: 6,
+            }}>{clientDisplay}</span>
+          )}
+          {dateDisplay !== '—' && (
+            <span style={{
+              fontSize: 10,
+              color: overdue ? 'var(--red)' : 'var(--text-muted)',
+              fontWeight: overdue ? 500 : 400, flexShrink: 0,
+              marginLeft: 'auto',
+            }}>{dateDisplay}</span>
+          )}
+        </div>
+      )}
 
       {/* Row 2: project name */}
       <div style={{
@@ -96,9 +115,11 @@ export default function ProjectCard({ project, onDragStart, onDragEnd, onClick }
         }}>{project.status}</span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {project.tasksDone} of {project.tasksTotal} tasks
-          </span>
+          {taskCountText && (
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {taskCountText}
+            </span>
+          )}
           <Avatar name={project.assignee} />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api.js';
 import {
   COLUMNS, STATUS_PILL, assigneeColor, initials, clientLabel,
@@ -35,10 +35,7 @@ function TaskCheck({ done, inProg, bouncing }) {
             strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ) : inProg ? (
-        <div style={{
-          width: 7, height: 7, borderRadius: '50%',
-          background: 'var(--orange)',
-        }} />
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)' }} />
       ) : null}
     </div>
   );
@@ -71,7 +68,6 @@ function TaskRow({ task, onToggle }) {
       }}
     >
       <TaskCheck done={done} inProg={inProg} bouncing={bouncing} />
-
       <span style={{
         flex: 1, fontSize: 13,
         color: done ? 'var(--text-muted)' : 'var(--text-primary)',
@@ -79,19 +75,65 @@ function TaskRow({ task, onToggle }) {
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         transition: 'color .15s',
       }}>{task.title}</span>
-
-      <span style={{ fontSize: 10, color: 'var(--text-muted)', flexShrink: 0 }}>
-        {task.phase}
-      </span>
-
       <Avatar name={task.assignee} size={16} />
-
       <span style={{
         fontSize: 11,
         color: overdue ? 'var(--red)' : 'var(--text-muted)',
         flexShrink: 0, minWidth: 72, textAlign: 'right',
         fontWeight: overdue ? 500 : 400,
       }}>{fmtDate(task.dueDate)}</span>
+    </div>
+  );
+}
+
+function InlineInput({ placeholder, onCommit, onCancel }) {
+  const ref = useRef(null);
+  const [val, setVal] = useState('');
+
+  useEffect(() => { ref.current?.focus(); }, []);
+
+  function handleKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); if (val.trim()) onCommit(val.trim()); }
+    if (e.key === 'Escape') onCancel();
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '6px 18px', borderBottom: '1px solid var(--border-subtle)',
+    }}>
+      <input
+        ref={ref}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onKeyDown={handleKey}
+        onBlur={() => { if (val.trim()) onCommit(val.trim()); else onCancel(); }}
+        placeholder={placeholder}
+        style={{
+          flex: 1, background: 'transparent', border: 'none',
+          borderBottom: '1px solid var(--accent)',
+          color: 'var(--text-primary)', fontSize: 13,
+          padding: '3px 0', outline: 'none', fontFamily: 'inherit',
+        }}
+      />
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); if (val.trim()) onCommit(val.trim()); }}
+        style={{
+          background: 'var(--accent)', border: 'none', borderRadius: 4,
+          color: '#fff', fontSize: 11, padding: '2px 8px',
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}
+      >✓</button>
+      <button
+        type="button"
+        onMouseDown={e => { e.preventDefault(); onCancel(); }}
+        style={{
+          background: 'transparent', border: 'none',
+          color: 'var(--text-muted)', fontSize: 14,
+          cursor: 'pointer', padding: '0 2px',
+        }}
+      >✕</button>
     </div>
   );
 }
@@ -113,6 +155,10 @@ export default function Panel({ project, onClose }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [localPhases, setLocalPhases] = useState([]);
+  const [addingPhase, setAddingPhase] = useState(false);
+  const [addingTaskPhase, setAddingTaskPhase] = useState(null);
+  const [hoveredPhase, setHoveredPhase] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +184,39 @@ export default function Panel({ project, onClose }) {
     });
   }
 
+  function handleCreatePhase(title) {
+    const tempPhase = { id: null, title };
+    setLocalPhases(prev => [...prev, tempPhase]);
+    setAddingPhase(false);
+    api.createPhase({ projectID: project.id, title })
+      .then(res => {
+        setLocalPhases(prev => prev.map(p => p.title === title ? { ...p, id: res.id } : p));
+      })
+      .catch(() => {
+        setLocalPhases(prev => prev.filter(p => p.title !== title));
+      });
+  }
+
+  function handleCreateTask(phaseName) {
+    return (title) => {
+      const tempId = `temp-${Date.now()}`;
+      const phaseID = tasks.find(t => t.phase === phaseName)?.phaseID
+        || localPhases.find(p => p.title === phaseName)?.id
+        || null;
+      const newTask = {
+        id: tempId, title, status: 'New',
+        phase: phaseName, phaseID,
+        assignee: null, dueDate: null, hours: 0,
+      };
+      setTasks(prev => [...prev, newTask]);
+      setAddingTaskPhase(null);
+      api.createTask({ projectID: project.id, phaseID, title })
+        .catch(() => {
+          setTasks(prev => prev.filter(t => t.id !== tempId));
+        });
+    };
+  }
+
   const statuses = ['All', 'New', 'In Progress', 'On Hold', 'Complete'];
   const filtered = tasks.filter(t => statusFilter === 'All' || t.status === statusFilter);
 
@@ -145,6 +224,12 @@ export default function Panel({ project, onClose }) {
     (acc[t.phase] = acc[t.phase] || []).push(t);
     return acc;
   }, {});
+
+  const phasesFromTasks = Object.keys(grouped);
+  const extraPhases = localPhases
+    .filter(p => !phasesFromTasks.includes(p.title))
+    .map(p => p.title);
+  const allPhaseNames = [...phasesFromTasks, ...extraPhases];
 
   const doneTasks = tasks.filter(t => t.status === 'Complete').length;
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
@@ -213,31 +298,22 @@ export default function Panel({ project, onClose }) {
                 width: 28, height: 28, borderRadius: 6,
                 background: 'transparent', border: 'none',
                 color: 'var(--text-muted)', cursor: 'pointer',
-                fontSize: 18, lineHeight: 1, flexShrink: 0,
+                fontSize: 18, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'background .12s, color .12s',
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--bg-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
             >×</button>
           </div>
 
           {/* 2×2 stats grid */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr',
-            gap: '12px 20px', marginBottom: 14,
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', marginBottom: 14 }}>
             {[
-              { label: 'Tasks done',  value: `${doneTasks} / ${tasks.length}` },
+              { label: 'Tasks done',   value: `${doneTasks} / ${tasks.length}` },
               { label: 'Hours logged', value: `${totalHours.toFixed(1)}h` },
-              { label: 'Due date',    value: fmtDate(project.dueDate), accent: overdue ? 'var(--red)' : null },
-              { label: 'Lead',        isLead: true },
+              { label: 'Due date',     value: fmtDate(project.dueDate), accent: overdue ? 'var(--red)' : null },
+              { label: 'Lead',         isLead: true },
             ].map(({ label, value, accent, isLead }) => (
               <div key={label}>
                 <div style={{
@@ -249,16 +325,14 @@ export default function Panel({ project, onClose }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Avatar name={project.assignee} size={18} />
                     <span style={{
-                      fontSize: 13, fontWeight: 500,
-                      color: 'var(--text-primary)',
+                      fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{project.assignee || '—'}</span>
                   </div>
                 ) : (
-                  <div style={{
-                    fontSize: 14, fontWeight: 600,
-                    color: accent || 'var(--text-primary)',
-                  }}>{value}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: accent || 'var(--text-primary)' }}>
+                    {value}
+                  </div>
                 )}
               </div>
             ))}
@@ -266,17 +340,11 @@ export default function Panel({ project, onClose }) {
 
           {/* Progress bar */}
           <div>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              marginBottom: 5,
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Progress</span>
               <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{pct}%</span>
             </div>
-            <div style={{
-              height: 4, background: 'var(--border-subtle)',
-              borderRadius: 9999, overflow: 'hidden',
-            }}>
+            <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 9999, overflow: 'hidden' }}>
               <div style={{
                 height: '100%', width: `${pct}%`,
                 background: progressBarColor(pct),
@@ -290,8 +358,7 @@ export default function Panel({ project, onClose }) {
         <div style={{
           padding: '8px 18px',
           borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex', gap: 4, flexWrap: 'wrap',
-          flexShrink: 0,
+          display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0,
         }}>
           {statuses.map(s => {
             const active = statusFilter === s;
@@ -302,8 +369,7 @@ export default function Panel({ project, onClose }) {
                 style={{
                   background: active ? 'var(--bg-hover)' : 'transparent',
                   border: `1px solid ${active ? 'var(--border-subtle)' : 'transparent'}`,
-                  borderRadius: 6, padding: '3px 10px',
-                  fontSize: 11,
+                  borderRadius: 6, padding: '3px 10px', fontSize: 11,
                   color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                   cursor: 'pointer', fontWeight: active ? 500 : 400,
                   transition: 'all .1s',
@@ -315,39 +381,94 @@ export default function Panel({ project, onClose }) {
 
         {/* Task list */}
         <div style={{ overflow: 'auto', flex: 1 }}>
-          {loading ? <Spinner /> : filtered.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: 40,
-              fontSize: 13, color: 'var(--text-muted)',
-            }}>No tasks</div>
+          {loading ? <Spinner /> : allPhaseNames.length === 0 && !addingPhase ? (
+            <div style={{ textAlign: 'center', padding: 40, fontSize: 13, color: 'var(--text-muted)' }}>
+              No tasks yet
+            </div>
           ) : (
-            Object.entries(grouped).map(([phase, phaseTasks]) => {
-              const phaseDone = phaseTasks.filter(t => t.status === 'Complete').length;
-              return (
-                <div key={phase}>
-                  <div style={{
-                    padding: '8px 18px',
-                    position: 'sticky', top: 0, zIndex: 5,
-                    background: 'var(--bg-panel)',
-                    borderBottom: '1px solid var(--border-subtle)',
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.07em',
-                    }}>{phase}</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      {phaseDone}/{phaseTasks.length}
-                    </span>
+            <>
+              {allPhaseNames.map(phase => {
+                const phaseTasks = grouped[phase] || [];
+                const phaseDone = phaseTasks.filter(t => t.status === 'Complete').length;
+                const isHovered = hoveredPhase === phase;
+
+                return (
+                  <div
+                    key={phase}
+                    onMouseEnter={() => setHoveredPhase(phase)}
+                    onMouseLeave={() => setHoveredPhase(null)}
+                  >
+                    {/* Phase header */}
+                    <div style={{
+                      padding: '8px 18px',
+                      position: 'sticky', top: 0, zIndex: 5,
+                      background: 'var(--bg-panel)',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase', letterSpacing: '0.07em',
+                      }}>{phase}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                        {phaseDone}/{phaseTasks.length}
+                      </span>
+                    </div>
+
+                    {/* Task rows */}
+                    {phaseTasks.map(t => (
+                      <TaskRow key={t.id} task={t} onToggle={handleToggle} />
+                    ))}
+
+                    {/* Add task inline input */}
+                    {addingTaskPhase === phase ? (
+                      <InlineInput
+                        placeholder="Task title…"
+                        onCommit={handleCreateTask(phase)}
+                        onCancel={() => setAddingTaskPhase(null)}
+                      />
+                    ) : (
+                      <div
+                        onClick={() => setAddingTaskPhase(phase)}
+                        style={{
+                          padding: '6px 18px', height: 32,
+                          display: 'flex', alignItems: 'center',
+                          cursor: 'pointer',
+                          opacity: isHovered ? 1 : 0,
+                          transition: 'opacity .15s',
+                          borderBottom: '1px solid var(--border-subtle)',
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: 'var(--accent)' }}>+ Add task</span>
+                      </div>
+                    )}
                   </div>
-                  {phaseTasks.map(t => (
-                    <TaskRow key={t.id} task={t} onToggle={handleToggle} />
-                  ))}
-                </div>
-              );
-            })
+                );
+              })}
+
+              {/* Add phase section */}
+              <div style={{ padding: '10px 18px' }}>
+                {addingPhase ? (
+                  <InlineInput
+                    placeholder="Phase name…"
+                    onCommit={handleCreatePhase}
+                    onCancel={() => setAddingPhase(false)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setAddingPhase(true)}
+                    style={{
+                      background: 'transparent', border: 'none',
+                      color: 'var(--accent)', fontSize: 12,
+                      cursor: 'pointer', padding: '4px 0',
+                      fontFamily: 'inherit', fontWeight: 500,
+                    }}
+                  >+ Add Phase</button>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

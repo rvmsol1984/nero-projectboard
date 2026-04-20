@@ -21,6 +21,40 @@ async function getPhaseNames(projectId) {
   }
 }
 
+router.post('/phases', async (req, res) => {
+  const { projectID, title } = req.body;
+  if (!projectID || !title) return res.status(400).json({ error: 'projectID and title required' });
+  try {
+    const { data } = await atClient.post('/Projects/phases', {
+      projectID: parseInt(projectID),
+      description: title,
+    });
+    res.json({ id: data.itemId, title, projectID });
+  } catch (err) {
+    console.error('[phases] POST error:', err.response?.data || err.message);
+    res.status(502).json({ error: 'Failed to create phase' });
+  }
+});
+
+router.post('/', async (req, res) => {
+  const { projectID, phaseID, title, assigneeID, dueDate } = req.body;
+  if (!projectID || !title) return res.status(400).json({ error: 'projectID and title required' });
+  try {
+    const { data } = await atClient.post('/Tasks', {
+      projectID: parseInt(projectID),
+      phaseID: phaseID ? parseInt(phaseID) : undefined,
+      title,
+      assignedResourceID: assigneeID ? parseInt(assigneeID) : undefined,
+      dueDateTime: dueDate || undefined,
+      status: 1,
+    });
+    res.json({ id: data.itemId, title, projectID, phaseID });
+  } catch (err) {
+    console.error('[tasks] POST error:', err.response?.data || err.message);
+    res.status(502).json({ error: 'Failed to create task' });
+  }
+});
+
 router.get('/:projectId', async (req, res) => {
   const { projectId } = req.params;
   try {
@@ -43,6 +77,7 @@ router.get('/:projectId', async (req, res) => {
       priority: mapTaskPriority(t.priority),
       dueDate: t.dueDateTime,
       phase: phaseMap[t.phaseID] || (t.phaseID ? `Phase ${t.phaseID}` : 'General'),
+      phaseID: t.phaseID || null,
       hours: t.hoursWorked || 0,
       estimatedHours: t.estimatedHours || 0,
     }));

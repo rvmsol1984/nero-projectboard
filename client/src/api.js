@@ -16,7 +16,12 @@ async function request(method, path, body) {
 export const api = {
   getProjects:         ()           => request('GET',   '/projects'),
   updateProjectStatus: (id, status) => request('PATCH', `/projects/${id}`, { status }),
+  createProject:       (body)       => request('POST',  '/projects', body),
+  searchCompanies:     (q)          => request('GET',   `/projects/companies/search?q=${encodeURIComponent(q)}`),
+  searchResources:     (q)          => request('GET',   `/projects/resources/search?q=${encodeURIComponent(q)}`),
   getTasksForProject:  (projectId)  => request('GET',   `/tasks/${projectId}`),
   updateTaskStatus:    (id, status) => request('PATCH', `/tasks/${id}`, { status }),
+  createTask:          (body)       => request('POST',  '/tasks', body),
+  createPhase:         (body)       => request('POST',  '/tasks/phases', body),
   health:              ()           => request('GET',   '/health'),
 };

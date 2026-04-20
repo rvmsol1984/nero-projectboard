@@ -30,6 +30,42 @@ async function refreshLookups() {
   }
 }
 
+router.get('/companies/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json([]);
+  try {
+    const { data } = await atClient.get('/Companies/query', {
+      params: {
+        search: JSON.stringify({
+          filter: [{ field: 'companyName', op: 'contains', value: q }],
+        }),
+      },
+    });
+    res.json((data.items || []).slice(0, 10).map(c => ({ id: c.id, name: c.companyName })));
+  } catch (err) {
+    console.error('[companies/search] error:', err.message);
+    res.status(502).json({ error: 'Failed to search companies' });
+  }
+});
+
+router.get('/resources/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json([]);
+  try {
+    const { data } = await atClient.get('/Resources/query', {
+      params: {
+        search: JSON.stringify({
+          filter: [{ field: 'firstName', op: 'contains', value: q }],
+        }),
+      },
+    });
+    res.json((data.items || []).slice(0, 10).map(r => ({ id: r.id, name: r.firstName + ' ' + r.lastName })));
+  } catch (err) {
+    console.error('[resources/search] error:', err.message);
+    res.status(502).json({ error: 'Failed to search resources' });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const [{ data }] = await Promise.all([
@@ -51,7 +87,7 @@ router.get('/', async (req, res) => {
       priority: mapPriority(p.priority),
       assignee: resourceMap[p.projectLeadResourceID] || String(p.projectLeadResourceID || ''),
       dueDate: p.endDateTime,
-      tasksTotal: p.estimatedHours || 0,
+      tasksTotal: 100,
       tasksDone: p.completedPercentage || 0,
       description: p.description || '',
       tags: [],
@@ -61,6 +97,26 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('[projects] GET error:', err.response?.data || err.message);
     res.status(502).json({ error: 'Failed to fetch projects from Autotask' });
+  }
+});
+
+router.post('/', async (req, res) => {
+  const { name, companyID, assigneeID, startDate, endDate, description } = req.body;
+  if (!name || !companyID) return res.status(400).json({ error: 'name and companyID required' });
+  try {
+    const { data } = await atClient.post('/Projects', {
+      projectName: name,
+      companyID: parseInt(companyID),
+      projectLeadResourceID: assigneeID ? parseInt(assigneeID) : undefined,
+      startDateTime: startDate || new Date().toISOString(),
+      endDateTime: endDate,
+      description: description || '',
+      status: 1,
+    });
+    res.json({ id: data.itemId, ...req.body });
+  } catch (err) {
+    console.error('[projects] POST error:', err.response?.data || err.message);
+    res.status(502).json({ error: 'Failed to create project' });
   }
 });
 

@@ -4,6 +4,7 @@ import { useTheme, COLUMNS, assigneeColor } from './theme.js';
 import Nav from './components/Nav.jsx';
 import Column from './components/Column.jsx';
 import Panel from './components/Panel.jsx';
+import NewProjectModal from './components/NewProjectModal.jsx';
 
 function SearchIcon() {
   return (
@@ -66,6 +67,7 @@ export default function App() {
   const [dragItem, setDragItem]             = useState(null);
   const [dragOverCol, setDragOverCol]       = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [showNewProject, setShowNewProject] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true); setError(null);
@@ -179,6 +181,19 @@ export default function App() {
             </button>
           );
         })}
+
+        <button
+          onClick={() => setShowNewProject(true)}
+          style={{
+            marginLeft: 'auto', flexShrink: 0,
+            background: 'var(--accent)', border: 'none',
+            borderRadius: 6, color: '#fff',
+            height: 32, padding: '0 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            transition: 'filter .15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.12)'}
+          onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+        >+ New Project</button>
       </div>
 
       {/* Board */}
@@ -208,6 +223,13 @@ export default function App() {
 
       {selectedProject && (
         <Panel project={selectedProject} onClose={() => setSelectedProject(null)} />
+      )}
+
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onCreated={() => { setShowNewProject(false); fetchProjects(); }}
+        />
       )}
     </div>
   );
