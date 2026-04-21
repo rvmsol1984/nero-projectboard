@@ -3,13 +3,6 @@ import { api } from '../api.js';
 import { STATUS_PILL, assigneeColor, initials } from '../theme.js';
 
 const STATUSES = ['New', 'In Progress', 'On Hold', 'Complete'];
-const PRIORITIES = ['Low', 'Medium', 'High'];
-
-const PRIORITY_COLOR = {
-  High:   { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444' },
-  Medium: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
-  Low:    { bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
-};
 
 function Avatar({ name, size = 20 }) {
   return (
@@ -62,7 +55,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
     setTask(updated);
     onTaskUpdate?.(updated);
     if (apiFields) {
-      api.updateTask({ id: task.id, projectID: project.id, ...apiFields })
+      api.updateTask({ id: task.id, projectID: task.projectID || project.id, ...apiFields })
         .catch(() => { setTask(task); onTaskUpdate?.(task); });
     }
   }
@@ -267,15 +260,6 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
             onBlur={e => { e.target.style.borderColor = 'transparent'; }}
           />
 
-          {/* Sub-task placeholder */}
-          <div style={{
-            fontSize: 12, color: 'var(--text-muted)',
-            display: 'flex', alignItems: 'center', gap: 6, cursor: 'default',
-          }}>
-            <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
-            <span>Add sub-task</span>
-          </div>
-
           <div style={{ height: 1, background: 'var(--border-subtle)' }} />
 
           {/* Properties */}
@@ -381,34 +365,6 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                   fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
                 }}
               />
-            </div>
-
-            {/* Priority */}
-            <div>
-              <div style={{
-                fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6,
-              }}>Priority</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {PRIORITIES.map(p => {
-                  const active = task.priority === p;
-                  const c = PRIORITY_COLOR[p];
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => updateTask({ priority: p }, null)}
-                      style={{
-                        background: active ? c.bg : 'transparent',
-                        border: `1px solid ${active ? 'transparent' : 'var(--border-subtle)'}`,
-                        borderRadius: 9999, padding: '3px 10px',
-                        fontSize: 11, fontWeight: active ? 600 : 400,
-                        color: active ? c.color : 'var(--text-secondary)',
-                        cursor: 'pointer', transition: 'all .1s', fontFamily: 'inherit',
-                      }}
-                    >{p}</button>
-                  );
-                })}
-              </div>
             </div>
 
           </div>

@@ -16,6 +16,7 @@ async function request(method, path, body) {
 export const api = {
   getProjects:         ()           => request('GET',   '/projects'),
   updateProjectStatus: (id, status) => request('PATCH', `/projects/${id}`, { status }),
+  updateProject:       (body)       => request('PATCH', '/projects/update', body),
   createProject:       (body)       => request('POST',  '/projects', body),
   searchCompanies:     (q)          => request('GET',   `/projects/companies/search?q=${encodeURIComponent(q)}`),
   searchResources:     (q)          => request('GET',   `/projects/resources/search?q=${encodeURIComponent(q)}`),

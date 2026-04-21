@@ -123,6 +123,21 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.patch('/update', async (req, res) => {
+  const { id, dueDate, assigneeID } = req.body;
+  if (!id) return res.status(400).json({ error: 'id required' });
+  try {
+    const payload = { id: parseInt(id) };
+    if (dueDate !== undefined) payload.endDateTime = new Date(dueDate).toISOString();
+    if (assigneeID !== undefined) payload.projectLeadResourceID = parseInt(assigneeID);
+    await atClient.patch('/Projects', payload);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[projects] update error:', err.response?.data || err.message);
+    res.status(502).json({ error: 'Failed to update project' });
+  }
+});
+
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

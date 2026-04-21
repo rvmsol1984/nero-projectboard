@@ -168,6 +168,12 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [projectStatus, setProjectStatus] = useState(project.status);
   const [showProjectStatusDrop, setShowProjectStatusDrop] = useState(false);
+  const [projectAssignee, setProjectAssignee] = useState(project.assignee);
+  const [projectDueDate, setProjectDueDate] = useState(project.dueDate);
+  const [editingDueDate, setEditingDueDate] = useState(false);
+  const [showTechDrop, setShowTechDrop] = useState(false);
+  const [techSearch, setTechSearch] = useState('');
+  const [techResults, setTechResults] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,6 +189,14 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
       .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [project.id]);
+
+  useEffect(() => {
+    if (techSearch.length < 2) { setTechResults([]); return; }
+    const t = setTimeout(async () => {
+      try { setTechResults(await api.searchResources(techSearch)); } catch {}
+    }, 300);
+    return () => clearTimeout(t);
+  }, [techSearch]);
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape' && !selectedTask) onClose(); };
@@ -266,7 +280,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   const doneTasks = tasks.filter(t => t.status === 'Complete').length;
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
   const pct = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
-  const overdue = isOverdue(project.dueDate);
+  const overdue = isOverdue(projectDueDate);
   const pill = STATUS_PILL[projectStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
 
   return (
@@ -387,33 +401,108 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
 
           {/* 2×2 stats grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', marginBottom: 14 }}>
-            {[
-              { label: 'Tasks done',   value: `${doneTasks} / ${tasks.length}` },
-              { label: 'Hours logged', value: `${totalHours.toFixed(1)}h` },
-              { label: 'Due date',     value: fmtDate(project.dueDate), accent: overdue ? 'var(--red)' : null },
-              { label: 'Tech',         isTech: true },
-            ].map(({ label, value, accent, isTech }) => (
-              <div key={label}>
-                <div style={{
-                  fontSize: 9, color: 'var(--text-muted)',
-                  textTransform: 'uppercase', letterSpacing: '0.07em',
-                  fontWeight: 600, marginBottom: 3,
-                }}>{label}</div>
-                {isTech ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Avatar name={project.assignee} size={18} />
-                    <span style={{
-                      fontSize: 13, fontWeight: 500, color: 'var(--text-primary)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>{project.assignee || '—'}</span>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 14, fontWeight: 600, color: accent || 'var(--text-primary)' }}>
-                    {value}
-                  </div>
-                )}
+            {/* Tasks done */}
+            <div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Tasks done</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{doneTasks} / {tasks.length}</div>
+            </div>
+            {/* Hours logged */}
+            <div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Hours logged</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{totalHours.toFixed(1)}h</div>
+            </div>
+            {/* Due date — editable */}
+            <div>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Due date</div>
+              {editingDueDate ? (
+                <input
+                  type="date"
+                  autoFocus
+                  defaultValue={projectDueDate ? projectDueDate.slice(0, 10) : ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const prev = projectDueDate;
+                    setProjectDueDate(val || null);
+                    setEditingDueDate(false);
+                    api.updateProject({ id: project.id, dueDate: val }).catch(() => setProjectDueDate(prev));
+                  }}
+                  onBlur={() => setEditingDueDate(false)}
+                  style={{
+                    background: 'transparent', border: '1px solid var(--accent)',
+                    borderRadius: 4, color: 'var(--text-primary)',
+                    fontSize: 12, padding: '2px 6px',
+                    fontFamily: 'inherit', outline: 'none',
+                  }}
+                />
+              ) : (
+                <div
+                  onClick={() => setEditingDueDate(true)}
+                  style={{ fontSize: 14, fontWeight: 600, color: overdue ? 'var(--red)' : 'var(--text-primary)', cursor: 'pointer' }}
+                >{fmtDate(projectDueDate) || '—'}</div>
+              )}
+            </div>
+            {/* Tech — editable */}
+            <div style={{ position: 'relative' }}>
+              <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Tech</div>
+              <div
+                onClick={() => { setShowTechDrop(v => !v); setTechSearch(''); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+              >
+                <Avatar name={projectAssignee} size={18} />
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {projectAssignee || '—'}
+                </span>
               </div>
-            ))}
+              {showTechDrop && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4,
+                  background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
+                  borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                  minWidth: 200, overflow: 'hidden',
+                }}>
+                  <input
+                    autoFocus
+                    value={techSearch}
+                    onChange={e => setTechSearch(e.target.value)}
+                    placeholder="Search resources…"
+                    onBlur={() => setTimeout(() => { setShowTechDrop(false); setTechSearch(''); setTechResults([]); }, 150)}
+                    style={{
+                      width: '100%', padding: '8px 12px',
+                      background: 'transparent', border: 'none',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      color: 'var(--text-primary)', fontSize: 12,
+                      outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                  {techResults.map(r => (
+                    <button
+                      key={r.id}
+                      onMouseDown={() => {
+                        const prev = projectAssignee;
+                        setProjectAssignee(r.name);
+                        setShowTechDrop(false);
+                        setTechSearch('');
+                        setTechResults([]);
+                        api.updateProject({ id: project.id, assigneeID: r.id }).catch(() => setProjectAssignee(prev));
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        width: '100%', padding: '7px 12px',
+                        background: 'transparent', border: 'none',
+                        borderBottom: '1px solid var(--border-subtle)',
+                        cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
+                        fontFamily: 'inherit',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <Avatar name={r.name} size={16} />
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Progress bar */}

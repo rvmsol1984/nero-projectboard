@@ -54,6 +54,7 @@ router.get('/:projectId', async (req, res) => {
 
     const tasks = (tasksRes.data.items || []).map(t => ({
       id: t.id,
+      projectID: t.projectID,
       title: t.title,
       status: mapTaskStatus(t.status),
       assignee: t.assignedResourceID,
@@ -112,7 +113,7 @@ router.patch('/:id', async (req, res) => {
     });
     res.json({ success: true });
   } catch (err) {
-    console.error('[tasks] PUT error:', err.response?.data || err.message);
+    console.error('[tasks] PATCH error:', err.response?.data || err.message);
     res.status(502).json({ error: 'Failed to update task' });
   }
 });

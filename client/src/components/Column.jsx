@@ -15,7 +15,7 @@ export default function Column({
         background: dragOver ? 'var(--bg-hover)' : 'transparent',
         borderRadius: 8,
         transition: 'background .15s',
-        minHeight: 60,
+        minHeight: 'calc(100vh - 120px)',
       }}
     >
       {/* Header */}
