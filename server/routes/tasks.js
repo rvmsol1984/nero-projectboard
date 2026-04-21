@@ -25,9 +25,9 @@ router.post('/phases', async (req, res) => {
   const { projectID, title } = req.body;
   if (!projectID || !title) return res.status(400).json({ error: 'projectID and title required' });
   try {
-    const { data } = await atClient.post('/Phases', {
+    const { data } = await atClient.post(`/Projects/${projectID}/Phases`, {
       projectID: parseInt(projectID),
-      description: title,
+      title,
     });
     res.json({ id: data.itemId, title, projectID });
   } catch (err) {
