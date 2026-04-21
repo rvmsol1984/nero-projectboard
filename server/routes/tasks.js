@@ -2,25 +2,6 @@ const express = require('express');
 const router = express.Router();
 const atClient = require('../middleware/autotask');
 
-async function getPhaseNames(projectId) {
-  try {
-    const { data } = await atClient.get('/Phases/query', {
-      params: {
-        search: JSON.stringify({
-          filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }],
-        }),
-      },
-    });
-    const map = {};
-    (data.items || []).forEach(p => {
-      map[p.id] = p.description || p.title || p.name || `Phase ${p.id}`;
-    });
-    return map;
-  } catch {
-    return {};
-  }
-}
-
 router.post('/phases', async (req, res) => {
   const { projectID, title } = req.body;
   if (!projectID || !title) return res.status(400).json({ error: 'projectID and title required' });
@@ -58,18 +39,19 @@ router.post('/', async (req, res) => {
 router.get('/:projectId', async (req, res) => {
   const { projectId } = req.params;
   try {
-    const [{ data }, phaseMap] = await Promise.all([
+    const [tasksRes, phasesRes] = await Promise.all([
       atClient.get('/Tasks/query', {
-        params: {
-          search: JSON.stringify({
-            filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }],
-          }),
-        },
+        params: { search: JSON.stringify({ filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }] }) },
       }),
-      getPhaseNames(projectId),
+      atClient.get('/Phases/query', {
+        params: { search: JSON.stringify({ filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }] }) },
+      }),
     ]);
 
-    const tasks = (data.items || []).map(t => ({
+    const phaseMap = {};
+    (phasesRes.data.items || []).forEach(p => { phaseMap[p.id] = p.title; });
+
+    const tasks = (tasksRes.data.items || []).map(t => ({
       id: t.id,
       title: t.title,
       status: mapTaskStatus(t.status),
@@ -82,7 +64,13 @@ router.get('/:projectId', async (req, res) => {
       estimatedHours: t.estimatedHours || 0,
     }));
 
-    res.json(tasks);
+    const phases = (phasesRes.data.items || []).map(p => ({
+      id: p.id,
+      title: p.title,
+      projectID: p.projectID,
+    }));
+
+    res.json({ tasks, phases });
   } catch (err) {
     console.error('[tasks] GET error:', err.response?.data || err.message);
     res.status(502).json({ error: 'Failed to fetch tasks from Autotask' });

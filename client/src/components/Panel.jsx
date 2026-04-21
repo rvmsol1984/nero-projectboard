@@ -153,18 +153,24 @@ function Spinner() {
 
 export default function Panel({ project, onClose }) {
   const [tasks, setTasks] = useState([]);
+  const [phases, setPhases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [localPhases, setLocalPhases] = useState([]);
   const [addingPhase, setAddingPhase] = useState(false);
   const [addingTaskPhase, setAddingTaskPhase] = useState(null);
-  const [hoveredPhase, setHoveredPhase] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     api.getTasksForProject(project.id)
-      .then(data => { if (!cancelled) { setTasks(data); setLoading(false); } })
+      .then(({ tasks, phases }) => {
+        if (!cancelled) {
+          setTasks(tasks);
+          setPhases(phases);
+          setLoading(false);
+        }
+      })
       .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [project.id]);
@@ -185,12 +191,12 @@ export default function Panel({ project, onClose }) {
   }
 
   function handleCreatePhase(title) {
-    const tempPhase = { id: null, title };
-    setLocalPhases(prev => [...prev, tempPhase]);
+    setLocalPhases(prev => [...prev, { id: null, title }]);
     setAddingPhase(false);
     api.createPhase({ projectID: project.id, title })
       .then(res => {
-        setLocalPhases(prev => prev.map(p => p.title === title ? { ...p, id: res.id } : p));
+        setLocalPhases(prev => prev.filter(p => p.title !== title));
+        setPhases(prev => [...prev, { id: res.id, title, projectID: project.id }]);
       })
       .catch(() => {
         setLocalPhases(prev => prev.filter(p => p.title !== title));
@@ -200,9 +206,11 @@ export default function Panel({ project, onClose }) {
   function handleCreateTask(phaseName) {
     return (title) => {
       const tempId = `temp-${Date.now()}`;
-      const phaseID = tasks.find(t => t.phase === phaseName)?.phaseID
-        || localPhases.find(p => p.title === phaseName)?.id
-        || null;
+      const phaseID = phaseName === 'General'
+        ? null
+        : phases.find(p => p.title === phaseName)?.id
+          || localPhases.find(p => p.title === phaseName)?.id
+          || null;
       const newTask = {
         id: tempId, title, status: 'New',
         phase: phaseName, phaseID,
@@ -221,15 +229,22 @@ export default function Panel({ project, onClose }) {
   const filtered = tasks.filter(t => statusFilter === 'All' || t.status === statusFilter);
 
   const grouped = filtered.reduce((acc, t) => {
-    (acc[t.phase] = acc[t.phase] || []).push(t);
+    const key = t.phaseID ? t.phase : 'General';
+    (acc[key] = acc[key] || []).push(t);
     return acc;
   }, {});
 
-  const phasesFromTasks = Object.keys(grouped);
-  const extraPhases = localPhases
-    .filter(p => !phasesFromTasks.includes(p.title))
-    .map(p => p.title);
-  const allPhaseNames = [...phasesFromTasks, ...extraPhases];
+  const hasGeneral = tasks.some(t => !t.phaseID);
+  const serverPhaseNames = phases.map(p => p.title);
+  const extraLocalPhaseNames = localPhases
+    .filter(lp => !serverPhaseNames.includes(lp.title))
+    .map(lp => lp.title);
+
+  const allPhaseNames = [
+    ...(hasGeneral ? ['General'] : []),
+    ...serverPhaseNames,
+    ...extraLocalPhaseNames,
+  ];
 
   const doneTasks = tasks.filter(t => t.status === 'Complete').length;
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
@@ -379,85 +394,8 @@ export default function Panel({ project, onClose }) {
           })}
         </div>
 
-        {/* Task list */}
-        <div style={{ overflow: 'auto', flex: 1 }}>
-          {loading ? <Spinner /> : allPhaseNames.length === 0 && !addingPhase ? (
-            <div style={{ textAlign: 'center', padding: 40, fontSize: 13, color: 'var(--text-muted)' }}>
-              No tasks yet
-            </div>
-          ) : (
-            <>
-              {allPhaseNames.map(phase => {
-                const phaseTasks = grouped[phase] || [];
-                const phaseDone = phaseTasks.filter(t => t.status === 'Complete').length;
-                const isHovered = hoveredPhase === phase;
-
-                return (
-                  <div
-                    key={phase}
-                    onMouseEnter={() => setHoveredPhase(phase)}
-                    onMouseLeave={() => setHoveredPhase(null)}
-                  >
-                    {/* Phase header */}
-                    <div style={{
-                      padding: '8px 18px',
-                      position: 'sticky', top: 0, zIndex: 5,
-                      background: 'var(--bg-panel)',
-                      borderBottom: '1px solid var(--border-subtle)',
-                      display: 'flex', alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase', letterSpacing: '0.07em',
-                      }}>{phase}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                        {phaseDone}/{phaseTasks.length}
-                      </span>
-                    </div>
-
-                    {/* Task rows */}
-                    {phaseTasks.map(t => (
-                      <TaskRow key={t.id} task={t} onToggle={handleToggle} />
-                    ))}
-
-                    {/* Add task inline input */}
-                    {addingTaskPhase === phase ? (
-                      <InlineInput
-                        placeholder="Task title…"
-                        onCommit={handleCreateTask(phase)}
-                        onCancel={() => setAddingTaskPhase(null)}
-                      />
-                    ) : (
-                      <div
-                        onClick={() => setAddingTaskPhase(phase)}
-                        style={{
-                          padding: '6px 18px', height: 32,
-                          display: 'flex', alignItems: 'center',
-                          cursor: 'pointer',
-                          opacity: 1,
-                          borderBottom: '1px solid var(--border-subtle)',
-                        }}
-                      >
-                        <span style={{ fontSize: 11, color: 'var(--accent)' }}>+ Add task</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-            </>
-          )}
-        </div>
-
-        {/* Add phase footer */}
-        <div style={{
-          borderTop: '1px solid var(--border-subtle)',
-          padding: '12px 18px',
-          flexShrink: 0,
-          background: 'var(--bg-panel)',
-        }}>
+        {/* Add Phase — inline below filter bar */}
+        <div style={{ flexShrink: 0 }}>
           {addingPhase ? (
             <InlineInput
               placeholder="Phase name…"
@@ -465,15 +403,80 @@ export default function Panel({ project, onClose }) {
               onCancel={() => setAddingPhase(false)}
             />
           ) : (
-            <button
-              onClick={() => setAddingPhase(true)}
-              style={{
-                background: 'transparent', border: 'none',
-                color: 'var(--accent)', fontSize: 12,
-                cursor: 'pointer', padding: '4px 0',
-                fontFamily: 'inherit', fontWeight: 500,
-              }}
-            >+ Add Phase</button>
+            <div style={{ padding: '7px 18px', borderBottom: '1px solid var(--border-subtle)' }}>
+              <button
+                onClick={() => setAddingPhase(true)}
+                style={{
+                  background: 'transparent', border: 'none',
+                  color: 'var(--accent)', fontSize: 12,
+                  cursor: 'pointer', padding: 0,
+                  fontFamily: 'inherit', fontWeight: 500,
+                }}
+              >+ Add Phase</button>
+            </div>
+          )}
+        </div>
+
+        {/* Task list */}
+        <div style={{ overflow: 'auto', flex: 1 }}>
+          {loading ? <Spinner /> : allPhaseNames.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, fontSize: 13, color: 'var(--text-muted)' }}>
+              No tasks yet
+            </div>
+          ) : (
+            allPhaseNames.map(phase => {
+              const phaseTasks = grouped[phase] || [];
+              const phaseDone = phaseTasks.filter(t => t.status === 'Complete').length;
+
+              return (
+                <div key={phase}>
+                  {/* Phase header */}
+                  <div style={{
+                    padding: '8px 18px',
+                    position: 'sticky', top: 0, zIndex: 5,
+                    background: 'var(--bg-panel)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    display: 'flex', alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                    }}>{phase}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      {phaseDone}/{phaseTasks.length}
+                    </span>
+                  </div>
+
+                  {/* Task rows */}
+                  {phaseTasks.map(t => (
+                    <TaskRow key={t.id} task={t} onToggle={handleToggle} />
+                  ))}
+
+                  {/* Add task */}
+                  {addingTaskPhase === phase ? (
+                    <InlineInput
+                      placeholder="Task title…"
+                      onCommit={handleCreateTask(phase)}
+                      onCancel={() => setAddingTaskPhase(null)}
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setAddingTaskPhase(phase)}
+                      style={{
+                        padding: '6px 18px', height: 32,
+                        display: 'flex', alignItems: 'center',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <span style={{ fontSize: 11, color: 'var(--accent)' }}>+ Add task</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
