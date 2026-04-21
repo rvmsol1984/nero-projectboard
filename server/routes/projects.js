@@ -91,7 +91,7 @@ router.get('/', async (req, res) => {
       tasksDone: p.completedPercentage || 0,
       description: p.description || '',
       tags: [],
-    }));
+    })).sort((a, b) => b.id - a.id);
 
     res.json(projects);
   } catch (err) {
