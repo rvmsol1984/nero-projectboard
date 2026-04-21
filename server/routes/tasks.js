@@ -28,6 +28,7 @@ router.post('/', async (req, res) => {
       assignedResourceID: assigneeID ? parseInt(assigneeID) : undefined,
       dueDateTime: dueDate || undefined,
       status: 1,
+      taskType: 1,
     });
     res.json({ id: data.itemId, title, projectID, phaseID });
   } catch (err) {
