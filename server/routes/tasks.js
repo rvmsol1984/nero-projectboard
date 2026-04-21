@@ -83,11 +83,18 @@ router.patch('/:id', async (req, res) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'status is required' });
   try {
-    await atClient.patch(`/Tasks/${id}`, {
+    const taskRes = await atClient.get('/Tasks/query', {
+      params: { search: JSON.stringify({ filter: [{ field: 'id', op: 'eq', value: parseInt(id) }] }) },
+    });
+    const task = taskRes.data.items?.[0];
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    await atClient.patch(`/Projects/${task.projectID}/Tasks`, {
       id: parseInt(id),
+      projectID: task.projectID,
       status: reverseMapTaskStatus(status),
     });
-    res.json({ ok: true });
+    res.json({ success: true });
   } catch (err) {
     console.error('[tasks] PUT error:', err.response?.data || err.message);
     res.status(502).json({ error: 'Failed to update task' });
