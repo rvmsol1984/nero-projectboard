@@ -82,7 +82,7 @@ router.get('/', async (req, res) => {
     const projects = (data.items || []).map(p => ({
       id: p.id,
       name: p.projectName,
-      client: companyMap[p.companyID] || `Client #${p.companyID}`,
+      client: companyMap[p.companyID] || (p.companyID === 0 ? 'NERO Consulting' : `Client #${p.companyID}`),
       status: mapStatus(p.status),
       priority: mapPriority(p.priority),
       assignee: resourceMap[p.projectLeadResourceID] || String(p.projectLeadResourceID || ''),
