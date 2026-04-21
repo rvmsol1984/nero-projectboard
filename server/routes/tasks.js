@@ -4,7 +4,7 @@ const atClient = require('../middleware/autotask');
 
 async function getPhaseNames(projectId) {
   try {
-    const { data } = await atClient.get('/Projects/phases/query', {
+    const { data } = await atClient.get('/Phases/query', {
       params: {
         search: JSON.stringify({
           filter: [{ field: 'projectID', op: 'eq', value: parseInt(projectId) }],
@@ -25,7 +25,7 @@ router.post('/phases', async (req, res) => {
   const { projectID, title } = req.body;
   if (!projectID || !title) return res.status(400).json({ error: 'projectID and title required' });
   try {
-    const { data } = await atClient.post('/Projects/phases', {
+    const { data } = await atClient.post('/Phases', {
       projectID: parseInt(projectID),
       description: title,
     });
