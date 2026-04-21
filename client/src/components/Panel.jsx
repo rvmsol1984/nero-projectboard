@@ -436,8 +436,7 @@ export default function Panel({ project, onClose }) {
                           padding: '6px 18px', height: 32,
                           display: 'flex', alignItems: 'center',
                           cursor: 'pointer',
-                          opacity: isHovered ? 1 : 0,
-                          transition: 'opacity .15s',
+                          opacity: 1,
                           borderBottom: '1px solid var(--border-subtle)',
                         }}
                       >
@@ -448,27 +447,33 @@ export default function Panel({ project, onClose }) {
                 );
               })}
 
-              {/* Add phase section */}
-              <div style={{ padding: '10px 18px' }}>
-                {addingPhase ? (
-                  <InlineInput
-                    placeholder="Phase name…"
-                    onCommit={handleCreatePhase}
-                    onCancel={() => setAddingPhase(false)}
-                  />
-                ) : (
-                  <button
-                    onClick={() => setAddingPhase(true)}
-                    style={{
-                      background: 'transparent', border: 'none',
-                      color: 'var(--accent)', fontSize: 12,
-                      cursor: 'pointer', padding: '4px 0',
-                      fontFamily: 'inherit', fontWeight: 500,
-                    }}
-                  >+ Add Phase</button>
-                )}
-              </div>
             </>
+          )}
+        </div>
+
+        {/* Add phase footer */}
+        <div style={{
+          borderTop: '1px solid var(--border-subtle)',
+          padding: '12px 18px',
+          flexShrink: 0,
+          background: 'var(--bg-panel)',
+        }}>
+          {addingPhase ? (
+            <InlineInput
+              placeholder="Phase name…"
+              onCommit={handleCreatePhase}
+              onCancel={() => setAddingPhase(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setAddingPhase(true)}
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'var(--accent)', fontSize: 12,
+                cursor: 'pointer', padding: '4px 0',
+                fontFamily: 'inherit', fontWeight: 500,
+              }}
+            >+ Add Phase</button>
           )}
         </div>
       </div>
