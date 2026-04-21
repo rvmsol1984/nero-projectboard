@@ -48,6 +48,13 @@ router.get('/companies/search', async (req, res) => {
   }
 });
 
+const BOT_KEYWORDS = ['api', 'bot', 'integration', 'datto', 'rmm', 'glue', 'saasalerts', 'roboshadow', 'timezest', 'rocketcyber', 'edr', 'automate', 'vsa', 'uniview', 'darkwebid', 'portal', 'process', 'helpdesk', 'myitp', 'nightcrawler', 'threatlocker', 'autotask', 'projectboard', 'test', 'administrator'];
+function isHuman(r) {
+  const name = (r.firstName + ' ' + r.lastName).toLowerCase();
+  const email = (r.email || '').toLowerCase();
+  return !BOT_KEYWORDS.some(k => name.includes(k) || email.includes(k));
+}
+
 router.get('/resources/search', async (req, res) => {
   const { q } = req.query;
   if (!q || q.length < 2) return res.json([]);
@@ -59,10 +66,24 @@ router.get('/resources/search', async (req, res) => {
         }),
       },
     });
-    res.json((data.items || []).slice(0, 10).map(r => ({ id: r.id, name: r.firstName + ' ' + r.lastName })));
+    const humans = (data.items || []).filter(isHuman);
+    res.json(humans.slice(0, 10).map(r => ({ id: r.id, name: r.firstName + ' ' + r.lastName })));
   } catch (err) {
     console.error('[resources/search] error:', err.message);
     res.status(502).json({ error: 'Failed to search resources' });
+  }
+});
+
+router.get('/resources', async (req, res) => {
+  try {
+    const { data } = await atClient.get('/Resources/query', {
+      params: { search: JSON.stringify({ filter: [{ field: 'isActive', op: 'eq', value: true }] }) },
+    });
+    const humans = (data.items || []).filter(isHuman);
+    res.json(humans.map(r => ({ id: r.id, name: r.firstName + ' ' + r.lastName })));
+  } catch (err) {
+    console.error('[resources] GET error:', err.message);
+    res.status(502).json({ error: 'Failed to fetch resources' });
   }
 });
 

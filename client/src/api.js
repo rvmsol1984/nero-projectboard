@@ -20,6 +20,7 @@ export const api = {
   createProject:       (body)       => request('POST',  '/projects', body),
   searchCompanies:     (q)          => request('GET',   `/projects/companies/search?q=${encodeURIComponent(q)}`),
   searchResources:     (q)          => request('GET',   `/projects/resources/search?q=${encodeURIComponent(q)}`),
+  getResources:        ()           => request('GET',   '/projects/resources'),
   getTasksForProject:  (projectId)  => request('GET',   `/tasks/${projectId}`),
   updateTask:          (body)       => request('PATCH', '/tasks/update', body),
   updateTaskStatus:    (id, status) => request('PATCH', `/tasks/${id}`, { status }),

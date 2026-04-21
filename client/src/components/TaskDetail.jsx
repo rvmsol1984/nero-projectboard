@@ -33,7 +33,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
   const [priority, setPriority] = useState(initialTask.priority || 'Medium');
   const [showAssigneeDrop, setShowAssigneeDrop] = useState(false);
   const [resourceSearch, setResourceSearch] = useState('');
-  const [resourceResults, setResourceResults] = useState([]);
+  const [allResources, setAllResources] = useState([]);
   const [addingSubTask, setAddingSubTask] = useState(false);
   const [subTaskTitle, setSubTaskTitle] = useState('');
   const titleRef = useRef(null);
@@ -55,12 +55,9 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
   }, [editingTitle]);
 
   useEffect(() => {
-    if (resourceSearch.length < 2) { setResourceResults([]); return; }
-    const t = setTimeout(async () => {
-      try { setResourceResults(await api.searchResources(resourceSearch)); } catch {}
-    }, 300);
-    return () => clearTimeout(t);
-  }, [resourceSearch]);
+    if (!showAssigneeDrop || allResources.length > 0) return;
+    api.getResources().then(setAllResources).catch(() => {});
+  }, [showAssigneeDrop]);
 
   function updateTask(localUpdates, apiFields) {
     const updated = { ...task, ...localUpdates };
@@ -92,7 +89,6 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
   function handleAssigneeSelect(resource) {
     setShowAssigneeDrop(false);
     setResourceSearch('');
-    setResourceResults([]);
     if (resource) {
       updateTask({ assignee: resource.name }, { assigneeID: resource.id });
     } else {
@@ -346,7 +342,6 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                       onBlur={() => setTimeout(() => {
                         setShowAssigneeDrop(false);
                         setResourceSearch('');
-                        setResourceResults([]);
                       }, 150)}
                       style={{
                         width: '100%', padding: '8px 12px',
@@ -370,7 +365,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                       >Remove assignee</button>
                     )}
-                    {resourceResults.map(r => (
+                    {allResources.filter(r => !resourceSearch || r.name.toLowerCase().includes(resourceSearch.toLowerCase())).map(r => (
                       <button
                         key={r.id}
                         onMouseDown={() => handleAssigneeSelect(r)}

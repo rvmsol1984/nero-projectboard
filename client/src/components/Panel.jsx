@@ -173,7 +173,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   const [editingDueDate, setEditingDueDate] = useState(false);
   const [showTechDrop, setShowTechDrop] = useState(false);
   const [techSearch, setTechSearch] = useState('');
-  const [techResults, setTechResults] = useState([]);
+  const [allResources, setAllResources] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -191,12 +191,9 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   }, [project.id]);
 
   useEffect(() => {
-    if (techSearch.length < 2) { setTechResults([]); return; }
-    const t = setTimeout(async () => {
-      try { setTechResults(await api.searchResources(techSearch)); } catch {}
-    }, 300);
-    return () => clearTimeout(t);
-  }, [techSearch]);
+    if (!showTechDrop || allResources.length > 0) return;
+    api.getResources().then(setAllResources).catch(() => {});
+  }, [showTechDrop]);
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape' && !selectedTask) onClose(); };
@@ -466,7 +463,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                     value={techSearch}
                     onChange={e => setTechSearch(e.target.value)}
                     placeholder="Search resources…"
-                    onBlur={() => setTimeout(() => { setShowTechDrop(false); setTechSearch(''); setTechResults([]); }, 150)}
+                    onBlur={() => setTimeout(() => { setShowTechDrop(false); setTechSearch(''); }, 150)}
                     style={{
                       width: '100%', padding: '8px 12px',
                       background: 'transparent', border: 'none',
@@ -475,7 +472,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                       outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
                   />
-                  {techResults.map(r => (
+                  {allResources.filter(r => !techSearch || r.name.toLowerCase().includes(techSearch.toLowerCase())).map(r => (
                     <button
                       key={r.id}
                       onMouseDown={() => {
@@ -483,7 +480,6 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                         setProjectAssignee(r.name);
                         setShowTechDrop(false);
                         setTechSearch('');
-                        setTechResults([]);
                         api.updateProject({ id: project.id, assigneeID: r.id }).catch(() => setProjectAssignee(prev));
                       }}
                       style={{
