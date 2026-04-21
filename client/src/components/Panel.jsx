@@ -284,6 +284,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   const pill = STATUS_PILL[projectStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
 
   return (
+    <>
     <div
       onClick={onClose}
       style={{
@@ -607,7 +608,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                       key={t.id}
                       task={t}
                       onToggle={handleToggle}
-                      onOpen={setSelectedTask}
+                      onOpen={t => setSelectedTask({ ...t, projectID: project.id })}
                     />
                   ))}
 
@@ -638,19 +639,20 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
         </div>
       </div>
 
-      {/* Task detail panel */}
-      {selectedTask && (
-        <TaskDetail
-          task={selectedTask}
-          project={{ ...project, status: projectStatus }}
-          onClose={() => setSelectedTask(null)}
-          onTaskUpdate={updated => {
-            setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
-            setSelectedTask(updated);
-          }}
-          onProjectStatusUpdate={status => handleProjectStatusChange(status)}
-        />
-      )}
     </div>
+
+    {selectedTask && (
+      <TaskDetail
+        task={selectedTask}
+        project={{ ...project, status: projectStatus }}
+        onClose={() => setSelectedTask(null)}
+        onTaskUpdate={updated => {
+          setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+          setSelectedTask(updated);
+        }}
+        onProjectStatusUpdate={status => handleProjectStatusChange(status)}
+      />
+    )}
+    </>
   );
 }

@@ -3,6 +3,12 @@ import { api } from '../api.js';
 import { STATUS_PILL, assigneeColor, initials } from '../theme.js';
 
 const STATUSES = ['New', 'In Progress', 'On Hold', 'Complete'];
+const PRIORITIES = ['Low', 'Medium', 'High'];
+const PRIORITY_COLOR = {
+  High:   { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444' },
+  Medium: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
+  Low:    { bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
+};
 
 function Avatar({ name, size = 20 }) {
   return (
@@ -24,9 +30,12 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
   const [titleVal, setTitleVal] = useState(initialTask.title);
   const [description, setDescription] = useState('');
   const [showStatusDrop, setShowStatusDrop] = useState(false);
+  const [priority, setPriority] = useState(initialTask.priority || 'Medium');
   const [showAssigneeDrop, setShowAssigneeDrop] = useState(false);
   const [resourceSearch, setResourceSearch] = useState('');
   const [resourceResults, setResourceResults] = useState([]);
+  const [addingSubTask, setAddingSubTask] = useState(false);
+  const [subTaskTitle, setSubTaskTitle] = useState('');
   const titleRef = useRef(null);
 
   useEffect(() => {
@@ -36,6 +45,9 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
     setEditingTitle(false);
     setShowStatusDrop(false);
     setShowAssigneeDrop(false);
+    setPriority(initialTask.priority || 'Medium');
+    setAddingSubTask(false);
+    setSubTaskTitle('');
   }, [initialTask.id]);
 
   useEffect(() => {
@@ -260,6 +272,40 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
             onBlur={e => { e.target.style.borderColor = 'transparent'; }}
           />
 
+          {/* Sub-task */}
+          {addingSubTask ? (
+            <input
+              autoFocus
+              value={subTaskTitle}
+              onChange={e => setSubTaskTitle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const t = subTaskTitle.trim();
+                  if (t) api.createTask({ projectID: task.projectID || project.id, phaseID: task.phaseID, title: t });
+                  setSubTaskTitle(''); setAddingSubTask(false);
+                }
+                if (e.key === 'Escape') { setSubTaskTitle(''); setAddingSubTask(false); }
+              }}
+              onBlur={() => { setSubTaskTitle(''); setAddingSubTask(false); }}
+              placeholder="Sub-task title…"
+              style={{
+                width: '100%', background: 'transparent',
+                border: 'none', borderBottom: '1px solid var(--accent)',
+                color: 'var(--text-primary)', fontSize: 13,
+                padding: '3px 0', outline: 'none', fontFamily: 'inherit',
+                boxSizing: 'border-box',
+              }}
+            />
+          ) : (
+            <div
+              onClick={() => setAddingSubTask(true)}
+              style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+            >
+              <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+              <span>Add sub-task</span>
+            </div>
+          )}
+
           <div style={{ height: 1, background: 'var(--border-subtle)' }} />
 
           {/* Properties */}
@@ -365,6 +411,34 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                   fontFamily: 'inherit', outline: 'none', cursor: 'pointer',
                 }}
               />
+            </div>
+
+            {/* Priority — UI only */}
+            <div>
+              <div style={{
+                fontSize: 9, fontWeight: 600, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6,
+              }}>Priority</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {PRIORITIES.map(p => {
+                  const active = priority === p;
+                  const c = PRIORITY_COLOR[p];
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPriority(p)}
+                      style={{
+                        background: active ? c.bg : 'transparent',
+                        border: `1px solid ${active ? 'transparent' : 'var(--border-subtle)'}`,
+                        borderRadius: 9999, padding: '3px 10px',
+                        fontSize: 11, fontWeight: active ? 600 : 400,
+                        color: active ? c.color : 'var(--text-secondary)',
+                        cursor: 'pointer', transition: 'all .1s', fontFamily: 'inherit',
+                      }}
+                    >{p}</button>
+                  );
+                })}
+              </div>
             </div>
 
           </div>
