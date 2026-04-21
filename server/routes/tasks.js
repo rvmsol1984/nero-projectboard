@@ -83,7 +83,7 @@ router.patch('/:id', async (req, res) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'status is required' });
   try {
-    await atClient.put(`/Tasks/${id}`, {
+    await atClient.patch(`/Tasks/${id}`, {
       id: parseInt(id),
       status: reverseMapTaskStatus(status),
     });
