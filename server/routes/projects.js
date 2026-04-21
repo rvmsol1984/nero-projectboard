@@ -128,13 +128,13 @@ router.patch('/:id', async (req, res) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'status is required' });
   try {
-    await atClient.put(`/Projects/${id}`, {
+    await atClient.patch('/Projects', {
       id: parseInt(id),
       status: reverseMapStatus(status),
     });
     res.json({ ok: true });
   } catch (err) {
-    console.error('[projects] PUT error:', err.response?.data || err.message);
+    console.error('[projects] PATCH error:', err.response?.data || err.message);
     res.status(502).json({ error: 'Failed to update project' });
   }
 });

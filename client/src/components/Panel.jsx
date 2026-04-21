@@ -4,6 +4,9 @@ import {
   COLUMNS, STATUS_PILL, assigneeColor, initials, clientLabel,
   isOverdue, fmtDate, priorityColor, statusColor, progressBarColor,
 } from '../theme.js';
+import TaskDetail from './TaskDetail.jsx';
+
+const STATUSES = ['New', 'In Progress', 'On Hold', 'Complete'];
 
 function Avatar({ name, size = 18 }) {
   return (
@@ -41,14 +44,15 @@ function TaskCheck({ done, inProg, bouncing }) {
   );
 }
 
-function TaskRow({ task, onToggle }) {
+function TaskRow({ task, onToggle, onOpen }) {
   const [hovered, setHovered] = useState(false);
   const [bouncing, setBouncing] = useState(false);
   const done = task.status === 'Complete';
   const inProg = task.status === 'In Progress';
   const overdue = isOverdue(task.dueDate);
 
-  function handleClick() {
+  function handleToggleClick(e) {
+    e.stopPropagation();
     setBouncing(true);
     setTimeout(() => setBouncing(false), 200);
     onToggle(task);
@@ -56,7 +60,7 @@ function TaskRow({ task, onToggle }) {
 
   return (
     <div
-      onClick={handleClick}
+      onClick={() => onOpen?.(task)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -67,7 +71,9 @@ function TaskRow({ task, onToggle }) {
         transition: 'background .1s',
       }}
     >
-      <TaskCheck done={done} inProg={inProg} bouncing={bouncing} />
+      <div onClick={handleToggleClick} style={{ flexShrink: 0, display: 'flex' }}>
+        <TaskCheck done={done} inProg={inProg} bouncing={bouncing} />
+      </div>
       <span style={{
         flex: 1, fontSize: 13,
         color: done ? 'var(--text-muted)' : 'var(--text-primary)',
@@ -151,7 +157,7 @@ function Spinner() {
   );
 }
 
-export default function Panel({ project, onClose }) {
+export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   const [tasks, setTasks] = useState([]);
   const [phases, setPhases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -159,6 +165,9 @@ export default function Panel({ project, onClose }) {
   const [localPhases, setLocalPhases] = useState([]);
   const [addingPhase, setAddingPhase] = useState(false);
   const [addingTaskPhase, setAddingTaskPhase] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [projectStatus, setProjectStatus] = useState(project.status);
+  const [showProjectStatusDrop, setShowProjectStatusDrop] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,10 +185,10 @@ export default function Panel({ project, onClose }) {
   }, [project.id]);
 
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    const onKey = e => { if (e.key === 'Escape' && !selectedTask) onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, selectedTask]);
 
   function handleToggle(task) {
     const newStatus = task.status === 'Complete' ? 'New' : 'Complete';
@@ -188,6 +197,14 @@ export default function Panel({ project, onClose }) {
     api.updateTaskStatus(task.id, newStatus).catch(() => {
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: orig } : t));
     });
+  }
+
+  function handleProjectStatusChange(status) {
+    setShowProjectStatusDrop(false);
+    const prev = projectStatus;
+    setProjectStatus(status);
+    onProjectStatusUpdate?.(status);
+    api.updateProjectStatus(project.id, status).catch(() => setProjectStatus(prev));
   }
 
   function handleCreatePhase(title) {
@@ -250,7 +267,7 @@ export default function Panel({ project, onClose }) {
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
   const pct = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
   const overdue = isOverdue(project.dueDate);
-  const pill = STATUS_PILL[project.status] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
+  const pill = STATUS_PILL[projectStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
 
   return (
     <div
@@ -294,11 +311,57 @@ export default function Panel({ project, onClose }) {
                   fontSize: 10, color: 'var(--text-muted)',
                   textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
                 }}>{clientLabel(project.client)}</span>
-                <span style={{
-                  background: pill.bg, color: pill.color,
-                  borderRadius: 9999, padding: '1px 8px',
-                  fontSize: 10, fontWeight: 600,
-                }}>{project.status}</span>
+
+                {/* Clickable status pill */}
+                <div style={{ position: 'relative' }}>
+                  <span
+                    onClick={() => setShowProjectStatusDrop(v => !v)}
+                    style={{
+                      background: pill.bg, color: pill.color,
+                      borderRadius: 9999, padding: '1px 8px',
+                      fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                      userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: 3,
+                    }}
+                  >
+                    {projectStatus}
+                    <span style={{ fontSize: 7, opacity: 0.7 }}>▾</span>
+                  </span>
+                  {showProjectStatusDrop && (
+                    <div
+                      onMouseLeave={() => setShowProjectStatusDrop(false)}
+                      style={{
+                        position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4,
+                        background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
+                        borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                        minWidth: 150, overflow: 'hidden',
+                      }}
+                    >
+                      {STATUSES.map(s => {
+                        const p = STATUS_PILL[s] || { bg: 'transparent', color: 'var(--text-primary)' };
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => handleProjectStatusChange(s)}
+                            style={{
+                              display: 'flex', alignItems: 'center',
+                              width: '100%', padding: '7px 10px',
+                              background: 'transparent', border: 'none',
+                              borderBottom: '1px solid var(--border-subtle)',
+                              cursor: 'pointer', fontFamily: 'inherit',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <span style={{
+                              background: p.bg, color: p.color,
+                              borderRadius: 9999, padding: '2px 8px', fontSize: 10, fontWeight: 600,
+                            }}>{s}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
               <h2 style={{
                 fontSize: 20, fontWeight: 600,
@@ -451,7 +514,12 @@ export default function Panel({ project, onClose }) {
 
                   {/* Task rows */}
                   {phaseTasks.map(t => (
-                    <TaskRow key={t.id} task={t} onToggle={handleToggle} />
+                    <TaskRow
+                      key={t.id}
+                      task={t}
+                      onToggle={handleToggle}
+                      onOpen={setSelectedTask}
+                    />
                   ))}
 
                   {/* Add task */}
@@ -480,6 +548,20 @@ export default function Panel({ project, onClose }) {
           )}
         </div>
       </div>
+
+      {/* Task detail panel */}
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          project={{ ...project, status: projectStatus }}
+          onClose={() => setSelectedTask(null)}
+          onTaskUpdate={updated => {
+            setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+            setSelectedTask(updated);
+          }}
+          onProjectStatusUpdate={status => handleProjectStatusChange(status)}
+        />
+      )}
     </div>
   );
 }

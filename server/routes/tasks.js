@@ -78,6 +78,22 @@ router.get('/:projectId', async (req, res) => {
   }
 });
 
+router.patch('/update', async (req, res) => {
+  const { id, projectID, assigneeID, dueDate, status } = req.body;
+  if (!id || !projectID) return res.status(400).json({ error: 'id and projectID required' });
+  try {
+    const payload = { id: parseInt(id), projectID: parseInt(projectID) };
+    if (assigneeID !== undefined) payload.assignedResourceID = assigneeID ? parseInt(assigneeID) : null;
+    if (dueDate !== undefined) payload.dueDateTime = dueDate || null;
+    if (status !== undefined) payload.status = reverseMapTaskStatus(status);
+    await atClient.patch(`/Projects/${parseInt(projectID)}/Tasks`, payload);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[tasks] update error:', err.response?.data || err.message);
+    res.status(502).json({ error: 'Failed to update task' });
+  }
+});
+
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

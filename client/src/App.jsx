@@ -222,7 +222,13 @@ export default function App() {
       )}
 
       {selectedProject && (
-        <Panel project={selectedProject} onClose={() => setSelectedProject(null)} />
+        <Panel
+          project={selectedProject}
+          onClose={() => setSelectedProject(null)}
+          onProjectStatusUpdate={status => {
+            setProjects(ps => ps.map(p => p.id === selectedProject.id ? { ...p, status } : p));
+          }}
+        />
       )}
 
       {showNewProject && (
