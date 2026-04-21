@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { STATUS_PILL, assigneeColor, initials } from '../theme.js';
 
@@ -24,81 +24,79 @@ function Avatar({ name, size = 20 }) {
   );
 }
 
+function getDisplayName(task) {
+  return task.assignee && !/^\d+$/.test(String(task.assignee)) ? task.assignee : null;
+}
+
 export default function TaskDetail({ task: initialTask, project, onClose, onTaskUpdate, onProjectStatusUpdate }) {
-  const [task, setTask] = useState(initialTask);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleVal, setTitleVal] = useState(initialTask.title);
-  const [description, setDescription] = useState('');
-  const [showStatusDrop, setShowStatusDrop] = useState(false);
+  const [draftStatus, setDraftStatus] = useState(initialTask.status || 'New');
+  const [draftDueDate, setDraftDueDate] = useState(initialTask.dueDate ? initialTask.dueDate.slice(0, 10) : '');
+  const [draftAssignee, setDraftAssignee] = useState(null);
+  const [assigneeModified, setAssigneeModified] = useState(false);
   const [priority, setPriority] = useState(initialTask.priority || 'Medium');
+  const [showStatusDrop, setShowStatusDrop] = useState(false);
   const [showAssigneeDrop, setShowAssigneeDrop] = useState(false);
   const [resourceSearch, setResourceSearch] = useState('');
   const [allResources, setAllResources] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [addingSubTask, setAddingSubTask] = useState(false);
   const [subTaskTitle, setSubTaskTitle] = useState('');
-  const titleRef = useRef(null);
 
   useEffect(() => {
-    setTask(initialTask);
-    setTitleVal(initialTask.title);
-    setDescription('');
-    setEditingTitle(false);
+    setDraftStatus(initialTask.status || 'New');
+    setDraftDueDate(initialTask.dueDate ? initialTask.dueDate.slice(0, 10) : '');
+    setDraftAssignee(null);
+    setAssigneeModified(false);
+    setPriority(initialTask.priority || 'Medium');
     setShowStatusDrop(false);
     setShowAssigneeDrop(false);
-    setPriority(initialTask.priority || 'Medium');
+    setSaving(false);
+    setSaveError(null);
     setAddingSubTask(false);
     setSubTaskTitle('');
   }, [initialTask.id]);
-
-  useEffect(() => {
-    if (editingTitle && titleRef.current) titleRef.current.select();
-  }, [editingTitle]);
 
   useEffect(() => {
     if (!showAssigneeDrop || allResources.length > 0) return;
     api.getResources().then(setAllResources).catch(() => {});
   }, [showAssigneeDrop]);
 
-  function updateTask(localUpdates, apiFields) {
-    const updated = { ...task, ...localUpdates };
-    setTask(updated);
-    onTaskUpdate?.(updated);
-    if (apiFields) {
-      api.updateTask({ id: task.id, projectID: task.projectID || project.id, ...apiFields })
-        .catch(() => { setTask(task); onTaskUpdate?.(task); });
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const payload = {
+        id: initialTask.id,
+        projectID: initialTask.projectID || project.id,
+        status: draftStatus,
+        dueDate: draftDueDate || null,
+      };
+      if (assigneeModified) {
+        payload.assigneeID = draftAssignee?.id ?? null;
+      }
+      await api.updateTask(payload);
+      if (draftStatus === 'In Progress' && project.status === 'New') {
+        onProjectStatusUpdate?.('In Progress');
+      }
+      onTaskUpdate?.({
+        ...initialTask,
+        status: draftStatus,
+        dueDate: draftDueDate || null,
+        assignee: assigneeModified ? (draftAssignee?.name || null) : initialTask.assignee,
+      });
+      onClose();
+    } catch (err) {
+      setSaveError(err.message || 'Save failed');
+      setSaving(false);
     }
   }
 
-  function handleStatusChange(status) {
-    setShowStatusDrop(false);
-    updateTask({ status }, { status });
-    if (status === 'In Progress' && project.status === 'New') {
-      onProjectStatusUpdate?.('In Progress');
-    }
-  }
-
-  function handleTitleBlur() {
-    setEditingTitle(false);
-    if (titleVal.trim() && titleVal.trim() !== task.title) {
-      updateTask({ title: titleVal.trim() }, null);
-    } else {
-      setTitleVal(task.title);
-    }
-  }
-
-  function handleAssigneeSelect(resource) {
-    setShowAssigneeDrop(false);
-    setResourceSearch('');
-    if (resource) {
-      updateTask({ assignee: resource.name }, { assigneeID: resource.id });
-    } else {
-      updateTask({ assignee: null }, { assigneeID: null });
-    }
-  }
-
-  const pill = STATUS_PILL[task.status] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
-  const isNumericAssignee = task.assignee && /^\d+$/.test(String(task.assignee));
-  const hasNamedAssignee = task.assignee && !isNumericAssignee;
+  const displayAssigneeName = assigneeModified ? (draftAssignee?.name || null) : getDisplayName(initialTask);
+  const pill = STATUS_PILL[draftStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
+  const filteredResources = allResources.filter(
+    r => !resourceSearch || r.name.toLowerCase().includes(resourceSearch.toLowerCase())
+  );
 
   return (
     <div
@@ -130,7 +128,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
           }}>
             {project.name}
             <span style={{ margin: '0 6px', opacity: 0.5 }}>/</span>
-            {task.phase}
+            {initialTask.phase}
           </span>
           <button
             onClick={onClose}
@@ -149,54 +147,13 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
         {/* Body */}
         <div style={{ flex: 1, overflow: 'auto', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Checkbox + Title */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <div
-              onClick={() => handleStatusChange(task.status === 'Complete' ? 'New' : 'Complete')}
-              style={{
-                width: 20, height: 20, borderRadius: 5, flexShrink: 0, marginTop: 3,
-                border: `2px solid ${task.status === 'Complete' ? 'var(--green)' : 'var(--border-subtle)'}`,
-                background: task.status === 'Complete' ? 'var(--green)' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', transition: 'all .15s',
-              }}
-            >
-              {task.status === 'Complete' && (
-                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                  <path d="M1 4L3.8 7L9 1" stroke="#fff" strokeWidth="1.8"
-                    strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-            {editingTitle ? (
-              <input
-                ref={titleRef}
-                value={titleVal}
-                onChange={e => setTitleVal(e.target.value)}
-                onBlur={handleTitleBlur}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') { e.preventDefault(); handleTitleBlur(); }
-                  if (e.key === 'Escape') { setEditingTitle(false); setTitleVal(task.title); }
-                }}
-                style={{
-                  flex: 1, fontSize: 20, fontWeight: 600,
-                  color: 'var(--text-primary)', background: 'transparent',
-                  border: 'none', borderBottom: '1.5px solid var(--accent)',
-                  outline: 'none', fontFamily: 'inherit', padding: '0 0 2px',
-                }}
-              />
-            ) : (
-              <h2
-                onClick={() => setEditingTitle(true)}
-                style={{
-                  flex: 1, fontSize: 20, fontWeight: 600, margin: 0,
-                  color: task.status === 'Complete' ? 'var(--text-muted)' : 'var(--text-primary)',
-                  textDecoration: task.status === 'Complete' ? 'line-through' : 'none',
-                  lineHeight: 1.3, cursor: 'text', letterSpacing: '-0.2px',
-                }}
-              >{task.title}</h2>
-            )}
-          </div>
+          {/* Title */}
+          <h2 style={{
+            fontSize: 20, fontWeight: 600, margin: 0,
+            color: draftStatus === 'Complete' ? 'var(--text-muted)' : 'var(--text-primary)',
+            textDecoration: draftStatus === 'Complete' ? 'line-through' : 'none',
+            lineHeight: 1.3, letterSpacing: '-0.2px',
+          }}>{initialTask.title}</h2>
 
           {/* Status pill dropdown */}
           <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -209,7 +166,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                 userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: 4,
               }}
             >
-              {task.status}
+              {draftStatus}
               <span style={{ fontSize: 8, opacity: 0.7 }}>▾</span>
             </span>
             {showStatusDrop && (
@@ -224,19 +181,20 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
               >
                 {STATUSES.map(s => {
                   const p = STATUS_PILL[s] || { bg: 'transparent', color: 'var(--text-primary)' };
+                  const isSelected = draftStatus === s;
                   return (
                     <button
                       key={s}
-                      onClick={() => handleStatusChange(s)}
+                      onClick={() => { setDraftStatus(s); setShowStatusDrop(false); }}
                       style={{
                         display: 'flex', alignItems: 'center',
                         width: '100%', padding: '8px 12px',
-                        background: 'transparent', border: 'none',
-                        borderBottom: '1px solid var(--border-subtle)',
+                        background: isSelected ? 'var(--bg-hover)' : 'transparent',
+                        border: 'none', borderBottom: '1px solid var(--border-subtle)',
                         cursor: 'pointer', fontFamily: 'inherit',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'var(--bg-hover)' : 'transparent'; }}
                     >
                       <span style={{
                         background: p.bg, color: p.color,
@@ -249,25 +207,6 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
             )}
           </div>
 
-          {/* Description */}
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Add description…"
-            rows={3}
-            style={{
-              width: '100%', background: 'transparent',
-              border: '1px solid transparent', borderRadius: 6,
-              color: 'var(--text-primary)', fontSize: 13,
-              padding: '6px 8px', fontFamily: 'inherit',
-              resize: 'vertical', minHeight: 72, lineHeight: 1.6,
-              outline: 'none', boxSizing: 'border-box',
-              transition: 'border-color .15s',
-            }}
-            onFocus={e => { e.target.style.borderColor = 'var(--border-subtle)'; }}
-            onBlur={e => { e.target.style.borderColor = 'transparent'; }}
-          />
-
           {/* Sub-task */}
           {addingSubTask ? (
             <input
@@ -277,7 +216,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   const t = subTaskTitle.trim();
-                  if (t) api.createTask({ projectID: task.projectID || project.id, phaseID: task.phaseID, title: t });
+                  if (t) api.createTask({ projectID: initialTask.projectID || project.id, phaseID: initialTask.phaseID, title: t });
                   setSubTaskTitle(''); setAddingSubTask(false);
                 }
                 if (e.key === 'Escape') { setSubTaskTitle(''); setAddingSubTask(false); }
@@ -305,7 +244,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
           <div style={{ height: 1, background: 'var(--border-subtle)' }} />
 
           {/* Properties */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
             {/* Assignee */}
             <div>
@@ -318,10 +257,10 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                   onClick={() => { setShowAssigneeDrop(v => !v); setResourceSearch(''); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '3px 0' }}
                 >
-                  {hasNamedAssignee ? (
+                  {displayAssigneeName ? (
                     <>
-                      <Avatar name={task.assignee} size={20} />
-                      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{task.assignee}</span>
+                      <Avatar name={displayAssigneeName} size={20} />
+                      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{displayAssigneeName}</span>
                     </>
                   ) : (
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Unassigned — click to assign</span>
@@ -332,28 +271,35 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                     position: 'absolute', top: '100%', left: 0, zIndex: 10, marginTop: 4,
                     background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
                     borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-                    minWidth: 210, overflow: 'hidden',
+                    minWidth: 210, maxHeight: 260, overflow: 'auto',
                   }}>
-                    <input
-                      autoFocus
-                      value={resourceSearch}
-                      onChange={e => setResourceSearch(e.target.value)}
-                      placeholder="Search resources…"
-                      onBlur={() => setTimeout(() => {
-                        setShowAssigneeDrop(false);
-                        setResourceSearch('');
-                      }, 150)}
-                      style={{
-                        width: '100%', padding: '8px 12px',
-                        background: 'transparent', border: 'none',
-                        borderBottom: '1px solid var(--border-subtle)',
-                        color: 'var(--text-primary)', fontSize: 12,
-                        outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                      }}
-                    />
-                    {hasNamedAssignee && (
+                    <div style={{ position: 'sticky', top: 0, background: 'var(--bg-card)' }}>
+                      <input
+                        autoFocus
+                        value={resourceSearch}
+                        onChange={e => setResourceSearch(e.target.value)}
+                        placeholder="Search resources…"
+                        onBlur={() => setTimeout(() => {
+                          setShowAssigneeDrop(false);
+                          setResourceSearch('');
+                        }, 150)}
+                        style={{
+                          width: '100%', padding: '8px 12px',
+                          background: 'transparent', border: 'none',
+                          borderBottom: '1px solid var(--border-subtle)',
+                          color: 'var(--text-primary)', fontSize: 12,
+                          outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    {displayAssigneeName && (
                       <button
-                        onMouseDown={() => handleAssigneeSelect(null)}
+                        onMouseDown={() => {
+                          setDraftAssignee(null);
+                          setAssigneeModified(true);
+                          setShowAssigneeDrop(false);
+                          setResourceSearch('');
+                        }}
                         style={{
                           display: 'block', width: '100%', textAlign: 'left',
                           padding: '7px 12px', background: 'transparent',
@@ -365,25 +311,33 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                       >Remove assignee</button>
                     )}
-                    {allResources.filter(r => !resourceSearch || r.name.toLowerCase().includes(resourceSearch.toLowerCase())).map(r => (
-                      <button
-                        key={r.id}
-                        onMouseDown={() => handleAssigneeSelect(r)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          width: '100%', padding: '7px 12px',
-                          background: 'transparent', border: 'none',
-                          borderBottom: '1px solid var(--border-subtle)',
-                          cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
-                          fontFamily: 'inherit',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <Avatar name={r.name} size={16} />
-                        {r.name}
-                      </button>
-                    ))}
+                    {filteredResources.map(r => {
+                      const isSelected = draftAssignee?.id === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          onMouseDown={() => {
+                            setDraftAssignee(r);
+                            setAssigneeModified(true);
+                            setShowAssigneeDrop(false);
+                            setResourceSearch('');
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            width: '100%', padding: '7px 12px',
+                            background: isSelected ? 'var(--bg-hover)' : 'transparent',
+                            border: 'none', borderBottom: '1px solid var(--border-subtle)',
+                            cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
+                            fontFamily: 'inherit',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'var(--bg-hover)' : 'transparent'; }}
+                        >
+                          <Avatar name={r.name} size={16} />
+                          {r.name}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -397,8 +351,8 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
               }}>Due Date</div>
               <input
                 type="date"
-                value={task.dueDate ? task.dueDate.slice(0, 10) : ''}
-                onChange={e => updateTask({ dueDate: e.target.value || null }, { dueDate: e.target.value || null })}
+                value={draftDueDate}
+                onChange={e => setDraftDueDate(e.target.value)}
                 style={{
                   background: 'transparent', border: '1px solid var(--border-subtle)',
                   borderRadius: 6, color: 'var(--text-primary)',
@@ -436,6 +390,60 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
               </div>
             </div>
 
+          </div>
+        </div>
+
+        {/* Footer: Cancel / Save */}
+        <div style={{
+          padding: '12px 16px',
+          borderTop: '1px solid var(--border-subtle)',
+          flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          {saveError && (
+            <div style={{
+              fontSize: 12, color: '#ef4444',
+              padding: '6px 10px', borderRadius: 6,
+              background: 'rgba(239,68,68,0.08)',
+            }}>{saveError}</div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onClose}
+              disabled={saving}
+              style={{
+                flex: 1, padding: '8px 0', borderRadius: 6,
+                background: 'transparent', border: '1px solid var(--border-subtle)',
+                color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500,
+                cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                transition: 'background .1s',
+              }}
+              onMouseEnter={e => { if (!saving) e.currentTarget.style.background = 'var(--bg-hover)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            >Cancel</button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                flex: 2, padding: '8px 0', borderRadius: 6,
+                background: saving ? 'rgba(59,130,246,0.6)' : 'var(--accent)',
+                border: 'none', color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                transition: 'opacity .1s',
+              }}
+            >
+              {saving ? (
+                <>
+                  <div style={{
+                    width: 12, height: 12, borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.35)',
+                    borderTopColor: '#fff',
+                    animation: 'spin .8s linear infinite',
+                  }} />
+                  Saving…
+                </>
+              ) : 'Save'}
+            </button>
           </div>
         </div>
       </div>
