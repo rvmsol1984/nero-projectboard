@@ -175,19 +175,19 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   const [techSearch, setTechSearch] = useState('');
   const [allResources, setAllResources] = useState([]);
 
-  useEffect(() => {
-    let cancelled = false;
+  function loadTasks() {
     setLoading(true);
     api.getTasksForProject(project.id)
       .then(({ tasks, phases }) => {
-        if (!cancelled) {
-          setTasks(tasks);
-          setPhases(phases);
-          setLoading(false);
-        }
+        setTasks(tasks);
+        setPhases(phases);
+        setLoading(false);
       })
-      .catch(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .catch(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadTasks();
   }, [project.id]);
 
   useEffect(() => {
@@ -641,10 +641,9 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
       <TaskDetail
         task={selectedTask}
         project={{ ...project, status: projectStatus }}
-        onClose={() => setSelectedTask(null)}
+        onClose={() => { setSelectedTask(null); loadTasks(); }}
         onTaskUpdate={updated => {
           setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
-          setSelectedTask(updated);
         }}
         onProjectStatusUpdate={status => handleProjectStatusChange(status)}
       />

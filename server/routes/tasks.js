@@ -81,11 +81,17 @@ router.get('/:projectId', async (req, res) => {
 
 router.patch('/update', async (req, res) => {
   const { id, projectID, assigneeID, dueDate, status } = req.body;
+  console.log('[tasks] update body:', JSON.stringify(req.body));
   if (!id || !projectID) return res.status(400).json({ error: 'id and projectID required' });
   try {
     const payload = { id: parseInt(id), projectID: parseInt(projectID) };
-    if (assigneeID !== undefined) payload.assignedResourceID = assigneeID ? parseInt(assigneeID) : null;
-    if (dueDate !== undefined) payload.dueDateTime = dueDate || null;
+    if (assigneeID !== undefined && assigneeID !== null) {
+      payload.assignedResourceID = parseInt(assigneeID);
+      payload.assignedResourceRoleID = 29683465;
+      payload.billingCodeID = 29682860;
+      payload.departmentID = 29683470;
+    }
+    if (dueDate !== undefined) payload.dueDateTime = dueDate ? new Date(dueDate).toISOString() : null;
     if (status !== undefined) payload.status = reverseMapTaskStatus(status);
     await atClient.patch(`/Projects/${parseInt(projectID)}/Tasks`, payload);
     res.json({ success: true });
@@ -122,6 +128,7 @@ function mapTaskStatus(id) {
   return { 1: 'New', 2: 'In Progress', 5: 'Complete', 8: 'On Hold' }[id] || 'New';
 }
 function reverseMapTaskStatus(label) {
+  if (typeof label === 'number') return label;
   return { 'New': 1, 'In Progress': 2, 'Complete': 5, 'On Hold': 8 }[label] || 1;
 }
 function mapTaskPriority(val) {
