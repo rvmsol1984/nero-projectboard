@@ -92,7 +92,10 @@ router.patch('/update', async (req, res) => {
       payload.departmentID = 29683470;
     }
     if (dueDate !== undefined) payload.dueDateTime = dueDate ? new Date(dueDate).toISOString() : null;
-    if (status !== undefined) payload.status = reverseMapTaskStatus(status);
+    if (status !== undefined && status !== null) {
+      const mappedStatus = reverseMapTaskStatus(status);
+      if (mappedStatus) payload.status = mappedStatus;
+    }
     await atClient.patch(`/Projects/${parseInt(projectID)}/Tasks`, payload);
     res.json({ success: true });
   } catch (err) {

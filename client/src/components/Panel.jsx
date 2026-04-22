@@ -44,12 +44,15 @@ function TaskCheck({ done, inProg, bouncing }) {
   );
 }
 
-function TaskRow({ task, onToggle, onOpen }) {
+function TaskRow({ task, resourceMap, onToggle, onOpen }) {
   const [hovered, setHovered] = useState(false);
   const [bouncing, setBouncing] = useState(false);
   const done = task.status === 'Complete';
   const inProg = task.status === 'In Progress';
   const overdue = isOverdue(task.dueDate);
+  const assigneeName = task.assignee && /^\d+$/.test(String(task.assignee))
+    ? (resourceMap[task.assignee] || null)
+    : (task.assignee || null);
 
   function handleToggleClick(e) {
     e.stopPropagation();
@@ -81,7 +84,7 @@ function TaskRow({ task, onToggle, onOpen }) {
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         transition: 'color .15s',
       }}>{task.title}</span>
-      <Avatar name={task.assignee} size={16} />
+      {assigneeName && <Avatar name={assigneeName} size={16} />}
       <span style={{
         fontSize: 11,
         color: overdue ? 'var(--red)' : 'var(--text-muted)',
@@ -191,6 +194,10 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
   }, [project.id]);
 
   useEffect(() => {
+    api.getResources().then(setAllResources).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!showTechDrop || allResources.length > 0) return;
     api.getResources().then(setAllResources).catch(() => {});
   }, [showTechDrop]);
@@ -273,6 +280,8 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
     ...serverPhaseNames,
     ...extraLocalPhaseNames,
   ];
+
+  const resourceMap = Object.fromEntries(allResources.map(r => [r.id, r.name]));
 
   const doneTasks = tasks.filter(t => t.status === 'Complete').length;
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
@@ -603,6 +612,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                     <TaskRow
                       key={t.id}
                       task={t}
+                      resourceMap={resourceMap}
                       onToggle={handleToggle}
                       onOpen={t => setSelectedTask({ ...t, projectID: project.id })}
                     />

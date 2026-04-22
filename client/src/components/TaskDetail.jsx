@@ -33,6 +33,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
   const [draftDueDate, setDraftDueDate] = useState(initialTask.dueDate ? initialTask.dueDate.slice(0, 10) : '');
   const [draftAssignee, setDraftAssignee] = useState(null);
   const [assigneeModified, setAssigneeModified] = useState(false);
+  const [statusModified, setStatusModified] = useState(false);
   const [priority, setPriority] = useState(initialTask.priority || 'Medium');
   const [showStatusDrop, setShowStatusDrop] = useState(false);
   const [showAssigneeDrop, setShowAssigneeDrop] = useState(false);
@@ -48,6 +49,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
     setDraftDueDate(initialTask.dueDate ? initialTask.dueDate.slice(0, 10) : '');
     setDraftAssignee(null);
     setAssigneeModified(false);
+    setStatusModified(false);
     setPriority(initialTask.priority || 'Medium');
     setShowStatusDrop(false);
     setShowAssigneeDrop(false);
@@ -69,19 +71,17 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
       const payload = {
         id: initialTask.id,
         projectID: initialTask.projectID || project.id,
-        status: draftStatus,
         dueDate: draftDueDate || null,
       };
-      if (assigneeModified) {
-        payload.assigneeID = draftAssignee?.id ?? null;
-      }
+      if (statusModified) payload.status = draftStatus;
+      if (assigneeModified) payload.assigneeID = draftAssignee?.id ?? null;
       await api.updateTask(payload);
-      if (draftStatus === 'In Progress' && project.status === 'New') {
+      if (statusModified && draftStatus === 'In Progress' && project.status === 'New') {
         onProjectStatusUpdate?.('In Progress');
       }
       onTaskUpdate?.({
         ...initialTask,
-        status: draftStatus,
+        status: statusModified ? draftStatus : initialTask.status,
         dueDate: draftDueDate || null,
         assignee: assigneeModified ? (draftAssignee?.name || null) : initialTask.assignee,
       });
@@ -185,7 +185,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                   return (
                     <button
                       key={s}
-                      onClick={() => { setDraftStatus(s); setShowStatusDrop(false); }}
+                      onClick={() => { setDraftStatus(s); setStatusModified(s !== initialTask.status); setShowStatusDrop(false); }}
                       style={{
                         display: 'flex', alignItems: 'center',
                         width: '100%', padding: '8px 12px',
