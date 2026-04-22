@@ -31,7 +31,8 @@ function getDisplayName(task) {
 export default function TaskDetail({ task: initialTask, project, onClose, onTaskUpdate, onProjectStatusUpdate }) {
   const [draftStatus, setDraftStatus] = useState(initialTask.status || 'New');
   const [draftDueDate, setDraftDueDate] = useState(initialTask.dueDate ? initialTask.dueDate.slice(0, 10) : '');
-  const [draftAssignee, setDraftAssignee] = useState(null);
+  const [assigneeID, setAssigneeID] = useState(initialTask.assigneeID || null);
+  const [assigneeName, setAssigneeName] = useState(initialTask.assigneeName || getDisplayName(initialTask) || null);
   const [assigneeModified, setAssigneeModified] = useState(false);
   const [statusModified, setStatusModified] = useState(false);
   const [priority, setPriority] = useState(initialTask.priority || 'Medium');
@@ -47,7 +48,8 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
   useEffect(() => {
     setDraftStatus(initialTask.status || 'New');
     setDraftDueDate(initialTask.dueDate ? initialTask.dueDate.slice(0, 10) : '');
-    setDraftAssignee(null);
+    setAssigneeID(initialTask.assigneeID || null);
+    setAssigneeName(initialTask.assigneeName || getDisplayName(initialTask) || null);
     setAssigneeModified(false);
     setStatusModified(false);
     setPriority(initialTask.priority || 'Medium');
@@ -74,7 +76,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
         dueDate: draftDueDate || null,
       };
       if (statusModified) payload.status = draftStatus;
-      if (assigneeModified) payload.assigneeID = draftAssignee?.id ?? null;
+      if (assigneeModified) payload.assigneeID = assigneeID;
       await api.updateTask(payload);
       if (statusModified && draftStatus === 'In Progress' && project.status === 'New') {
         onProjectStatusUpdate?.('In Progress');
@@ -83,7 +85,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
         ...initialTask,
         status: statusModified ? draftStatus : initialTask.status,
         dueDate: draftDueDate || null,
-        assignee: assigneeModified ? (draftAssignee?.name || null) : initialTask.assignee,
+        assignee: assigneeModified ? (assigneeName || null) : initialTask.assignee,
       });
       onClose();
     } catch (err) {
@@ -92,7 +94,6 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
     }
   }
 
-  const displayAssigneeName = assigneeModified ? (draftAssignee?.name || null) : getDisplayName(initialTask);
   const pill = STATUS_PILL[draftStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
   const filteredResources = allResources.filter(
     r => !resourceSearch || r.name.toLowerCase().includes(resourceSearch.toLowerCase())
@@ -257,10 +258,10 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                   onClick={() => { setShowAssigneeDrop(v => !v); setResourceSearch(''); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '3px 0' }}
                 >
-                  {displayAssigneeName ? (
+                  {assigneeName ? (
                     <>
-                      <Avatar name={displayAssigneeName} size={20} />
-                      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{displayAssigneeName}</span>
+                      <Avatar name={assigneeName} size={20} />
+                      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{assigneeName}</span>
                     </>
                   ) : (
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Unassigned — click to assign</span>
@@ -292,10 +293,11 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                         }}
                       />
                     </div>
-                    {displayAssigneeName && (
+                    {assigneeName && (
                       <button
                         onMouseDown={() => {
-                          setDraftAssignee(null);
+                          setAssigneeID(null);
+                          setAssigneeName(null);
                           setAssigneeModified(true);
                           setShowAssigneeDrop(false);
                           setResourceSearch('');
@@ -312,12 +314,13 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
                       >Remove assignee</button>
                     )}
                     {filteredResources.map(r => {
-                      const isSelected = draftAssignee?.id === r.id;
+                      const isSelected = assigneeID === r.id;
                       return (
                         <button
                           key={r.id}
                           onMouseDown={() => {
-                            setDraftAssignee(r);
+                            setAssigneeID(r.id);
+                            setAssigneeName(r.name);
                             setAssigneeModified(true);
                             setShowAssigneeDrop(false);
                             setResourceSearch('');

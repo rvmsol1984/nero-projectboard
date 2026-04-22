@@ -614,7 +614,12 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                       task={t}
                       resourceMap={resourceMap}
                       onToggle={handleToggle}
-                      onOpen={t => setSelectedTask({ ...t, projectID: project.id })}
+                      onOpen={t => setSelectedTask({
+                        ...t,
+                        projectID: project.id,
+                        assigneeID: t.assignedResourceID || t.assigneeID || null,
+                        assigneeName: resourceMap[t.assignedResourceID] || resourceMap[t.assigneeID] || null,
+                      })}
                     />
                   ))}
 
