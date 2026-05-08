@@ -150,6 +150,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
 
           {/* Title */}
           <h2 style={{
+            fontFamily: "'Lora', Georgia, serif",
             fontSize: 20, fontWeight: 600, margin: 0,
             color: draftStatus === 'Complete' ? 'var(--text-muted)' : 'var(--text-primary)',
             textDecoration: draftStatus === 'Complete' ? 'line-through' : 'none',
@@ -399,7 +400,7 @@ export default function TaskDetail({ task: initialTask, project, onClose, onTask
         {/* Footer: Cancel / Save */}
         <div style={{
           padding: '12px 16px',
-          borderTop: '1px solid var(--border-subtle)',
+          borderTop: '1px solid var(--border)',
           flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8,
         }}>
           {saveError && (

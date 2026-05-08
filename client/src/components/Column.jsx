@@ -1,10 +1,26 @@
 import ProjectCard from './ProjectCard.jsx';
 
+const STATUS_ICONS = {
+  'New':         '○',
+  'In Progress': '◑',
+  'On Hold':     '⏸',
+  'Complete':    '●',
+};
+
+const STATUS_ACCENT = {
+  'New':         '#3b82f6',
+  'In Progress': '#f59e0b',
+  'On Hold':     '#a855f7',
+  'Complete':    '#22c55e',
+};
+
 export default function Column({
   column, projects,
   dragOver, onDragOver, onDragLeave, onDrop,
   onDragStart, onDragEnd, onCardClick,
 }) {
+  const iconColor = STATUS_ACCENT[column.id] || 'var(--text-muted)';
+
   return (
     <div
       onDragOver={onDragOver}
@@ -12,8 +28,9 @@ export default function Column({
       onDrop={onDrop}
       style={{
         display: 'flex', flexDirection: 'column',
-        background: dragOver ? 'var(--bg-hover)' : 'transparent',
+        background: dragOver ? 'rgba(59,130,246,0.05)' : 'var(--bg-hover)',
         borderRadius: 8,
+        padding: 12,
         transition: 'background .15s',
         minHeight: 'calc(100vh - 120px)',
       }}
@@ -21,19 +38,20 @@ export default function Column({
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center',
-        gap: 7, padding: '0 4px 10px',
+        gap: 7, padding: '2px 2px 12px',
       }}>
         <span style={{
-          width: 7, height: 7, borderRadius: '50%',
-          background: column.color, flexShrink: 0,
-        }} />
+          color: iconColor,
+          fontSize: 14, lineHeight: 1, flexShrink: 0,
+        }}>{STATUS_ICONS[column.id] || '○'}</span>
+
         <span style={{
-          fontSize: 11, fontWeight: 500,
-          color: 'var(--text-secondary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.07em',
-          flex: 1,
+          fontFamily: "'Lora', Georgia, serif",
+          fontSize: 14, fontWeight: 600,
+          color: 'var(--text-primary)',
+          flex: 1, letterSpacing: '-0.1px',
         }}>{column.label}</span>
+
         <span style={{
           fontSize: 11, color: 'var(--text-muted)',
           fontWeight: 500,
@@ -41,7 +59,7 @@ export default function Column({
       </div>
 
       {/* Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {projects.map(p => (
           <ProjectCard
             key={p.id}

@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api.js';
 import {
   COLUMNS, STATUS_PILL, assigneeColor, initials, clientLabel,
-  isOverdue, fmtDate, priorityColor, statusColor, progressBarColor,
+  isOverdue, fmtDate, progressBarColor,
 } from '../theme.js';
 import TaskDetail from './TaskDetail.jsx';
 
 const STATUSES = ['New', 'In Progress', 'On Hold', 'Complete'];
+
+const LORA = "'Lora', Georgia, serif";
 
 function Avatar({ name, size = 18 }) {
   return (
@@ -26,8 +28,8 @@ function TaskCheck({ done, inProg, bouncing }) {
   return (
     <div style={{
       width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-      border: `1.5px solid ${done ? 'var(--green)' : 'var(--border-subtle)'}`,
-      background: done ? 'var(--green)' : 'transparent',
+      border: `1.5px solid ${done ? 'var(--accent-green)' : 'var(--border)'}`,
+      background: done ? 'var(--accent-green)' : 'transparent',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'background 150ms, border-color 150ms',
       animation: bouncing ? 'checkBounce 180ms ease' : 'none',
@@ -38,7 +40,7 @@ function TaskCheck({ done, inProg, bouncing }) {
             strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ) : inProg ? (
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)' }} />
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-orange)' }} />
       ) : null}
     </div>
   );
@@ -70,7 +72,7 @@ function TaskRow({ task, resourceMap, onToggle, onOpen }) {
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '0 18px', height: 38, cursor: 'pointer',
         background: hovered ? 'var(--bg-hover)' : 'transparent',
-        borderBottom: '1px solid var(--border-subtle)',
+        borderBottom: '1px solid var(--border)',
         transition: 'background .1s',
       }}
     >
@@ -79,6 +81,7 @@ function TaskRow({ task, resourceMap, onToggle, onOpen }) {
       </div>
       <span style={{
         flex: 1, fontSize: 13,
+        fontFamily: LORA,
         color: done ? 'var(--text-muted)' : 'var(--text-primary)',
         textDecoration: done ? 'line-through' : 'none',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -87,7 +90,7 @@ function TaskRow({ task, resourceMap, onToggle, onOpen }) {
       {assigneeName && <Avatar name={assigneeName} size={16} />}
       <span style={{
         fontSize: 11,
-        color: overdue ? 'var(--red)' : 'var(--text-muted)',
+        color: overdue ? 'var(--accent-red)' : 'var(--text-muted)',
         flexShrink: 0, minWidth: 72, textAlign: 'right',
         fontWeight: overdue ? 500 : 400,
       }}>{fmtDate(task.dueDate)}</span>
@@ -109,7 +112,7 @@ function InlineInput({ placeholder, onCommit, onCancel }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 6,
-      padding: '6px 18px', borderBottom: '1px solid var(--border-subtle)',
+      padding: '6px 18px', borderBottom: '1px solid var(--border)',
     }}>
       <input
         ref={ref}
@@ -120,7 +123,7 @@ function InlineInput({ placeholder, onCommit, onCancel }) {
         placeholder={placeholder}
         style={{
           flex: 1, background: 'transparent', border: 'none',
-          borderBottom: '1px solid var(--accent)',
+          borderBottom: '1px solid var(--accent-blue)',
           color: 'var(--text-primary)', fontSize: 13,
           padding: '3px 0', outline: 'none', fontFamily: 'inherit',
         }}
@@ -129,7 +132,7 @@ function InlineInput({ placeholder, onCommit, onCancel }) {
         type="button"
         onMouseDown={e => { e.preventDefault(); if (val.trim()) onCommit(val.trim()); }}
         style={{
-          background: 'var(--accent)', border: 'none', borderRadius: 4,
+          background: 'var(--accent-blue)', border: 'none', borderRadius: 4,
           color: '#fff', fontSize: 11, padding: '2px 8px',
           cursor: 'pointer', fontFamily: 'inherit',
         }}
@@ -152,8 +155,8 @@ function Spinner() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
       <div style={{
         width: 20, height: 20, borderRadius: '50%',
-        border: '2px solid var(--border-subtle)',
-        borderTopColor: 'var(--accent)',
+        border: '2px solid var(--border)',
+        borderTopColor: 'var(--accent-blue)',
         animation: 'spin .8s linear infinite',
       }} />
     </div>
@@ -260,6 +263,8 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
     };
   }
 
+  const resourceMap = Object.fromEntries(allResources.map(r => [r.id, r.name]));
+
   const statuses = ['All', 'New', 'In Progress', 'On Hold', 'Complete'];
   const filtered = tasks.filter(t => statusFilter === 'All' || t.status === statusFilter);
 
@@ -281,13 +286,17 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
     ...extraLocalPhaseNames,
   ];
 
-  const resourceMap = Object.fromEntries(allResources.map(r => [r.id, r.name]));
-
   const doneTasks = tasks.filter(t => t.status === 'Complete').length;
   const totalHours = tasks.reduce((s, t) => s + (t.hours || 0), 0);
   const pct = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
   const overdue = isOverdue(projectDueDate);
-  const pill = STATUS_PILL[projectStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#52525b' };
+  const pill = STATUS_PILL[projectStatus] || { bg: 'rgba(82,82,91,0.15)', color: '#a0a0a0' };
+
+  const clientDisplay = (() => {
+    const label = clientLabel(project.client);
+    if (!label || label === '—' || /^client #0/i.test(label)) return null;
+    return label;
+  })();
 
   return (
     <>
@@ -308,7 +317,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
           position: 'absolute', right: 0, top: 0, bottom: 0,
           width: 480,
           background: 'var(--bg-panel)',
-          borderLeft: '1px solid var(--border-subtle)',
+          borderLeft: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column',
           animation: 'panelIn 200ms cubic-bezier(0.4,0,0.2,1) forwards',
           overflow: 'hidden',
@@ -317,7 +326,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
         {/* Header */}
         <div style={{
           padding: '20px 20px 16px',
-          borderBottom: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--border)',
           flexShrink: 0,
         }}>
           <div style={{
@@ -325,13 +334,20 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
             justifyContent: 'space-between', gap: 12, marginBottom: 14,
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Client badge + status pill */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap',
+                display: 'flex', alignItems: 'center', gap: 8,
+                marginBottom: 8, flexWrap: 'wrap',
               }}>
-                <span style={{
-                  fontSize: 10, color: 'var(--text-muted)',
-                  textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
-                }}>{clientLabel(project.client)}</span>
+                {clientDisplay && (
+                  <span style={{
+                    background: pill.bg, color: pill.color,
+                    fontSize: 10, fontWeight: 700,
+                    fontFamily: 'system-ui, sans-serif',
+                    padding: '2px 8px', borderRadius: 4,
+                    letterSpacing: '0.02em',
+                  }}>{clientDisplay}</span>
+                )}
 
                 {/* Clickable status pill */}
                 <div style={{ position: 'relative' }}>
@@ -339,7 +355,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                     onClick={() => setShowProjectStatusDrop(v => !v)}
                     style={{
                       background: pill.bg, color: pill.color,
-                      borderRadius: 9999, padding: '1px 8px',
+                      borderRadius: 9999, padding: '2px 9px',
                       fontSize: 10, fontWeight: 600, cursor: 'pointer',
                       userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: 3,
                     }}
@@ -352,8 +368,8 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                       onMouseLeave={() => setShowProjectStatusDrop(false)}
                       style={{
                         position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4,
-                        background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
-                        borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                        background: 'var(--bg-card)', border: '1px solid var(--border)',
+                        borderRadius: 8, boxShadow: 'var(--shadow-hover)',
                         minWidth: 150, overflow: 'hidden',
                       }}
                     >
@@ -367,7 +383,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                               display: 'flex', alignItems: 'center',
                               width: '100%', padding: '7px 10px',
                               background: 'transparent', border: 'none',
-                              borderBottom: '1px solid var(--border-subtle)',
+                              borderBottom: '1px solid var(--border)',
                               cursor: 'pointer', fontFamily: 'inherit',
                             }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
@@ -384,13 +400,17 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                   )}
                 </div>
               </div>
+
+              {/* Project name in Lora */}
               <h2 style={{
-                fontSize: 20, fontWeight: 600,
+                fontFamily: LORA,
+                fontSize: 22, fontWeight: 700,
                 color: 'var(--text-primary)',
                 lineHeight: 1.25, letterSpacing: '-0.3px',
                 margin: 0,
               }}>{project.name}</h2>
             </div>
+
             <button
               onClick={onClose}
               style={{
@@ -408,17 +428,15 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
 
           {/* 2×2 stats grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 20px', marginBottom: 14 }}>
-            {/* Tasks done */}
             <div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Tasks done</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{doneTasks} / {tasks.length}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: LORA }}>{doneTasks} / {tasks.length}</div>
             </div>
-            {/* Hours logged */}
             <div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Hours logged</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{totalHours.toFixed(1)}h</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: LORA }}>{totalHours.toFixed(1)}h</div>
             </div>
-            {/* Due date — editable */}
+            {/* Due date */}
             <div>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Due date</div>
               {editingDueDate ? (
@@ -435,7 +453,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                   }}
                   onBlur={() => setEditingDueDate(false)}
                   style={{
-                    background: 'transparent', border: '1px solid var(--accent)',
+                    background: 'transparent', border: '1px solid var(--accent-blue)',
                     borderRadius: 4, color: 'var(--text-primary)',
                     fontSize: 12, padding: '2px 6px',
                     fontFamily: 'inherit', outline: 'none',
@@ -444,11 +462,11 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
               ) : (
                 <div
                   onClick={() => setEditingDueDate(true)}
-                  style={{ fontSize: 14, fontWeight: 600, color: overdue ? 'var(--red)' : 'var(--text-primary)', cursor: 'pointer' }}
+                  style={{ fontSize: 14, fontWeight: 600, color: overdue ? 'var(--accent-red)' : 'var(--text-primary)', cursor: 'pointer', fontFamily: LORA }}
                 >{fmtDate(projectDueDate) || '—'}</div>
               )}
             </div>
-            {/* Tech — editable */}
+            {/* Tech */}
             <div style={{ position: 'relative' }}>
               <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 3 }}>Tech</div>
               <div
@@ -463,9 +481,9 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
               {showTechDrop && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, zIndex: 20, marginTop: 4,
-                  background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
-                  borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-                  minWidth: 200, overflow: 'hidden',
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
+                  borderRadius: 8, boxShadow: 'var(--shadow-hover)',
+                  minWidth: 200, maxHeight: 240, overflow: 'auto',
                 }}>
                   <input
                     autoFocus
@@ -476,7 +494,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                     style={{
                       width: '100%', padding: '8px 12px',
                       background: 'transparent', border: 'none',
-                      borderBottom: '1px solid var(--border-subtle)',
+                      borderBottom: '1px solid var(--border)',
                       color: 'var(--text-primary)', fontSize: 12,
                       outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                     }}
@@ -495,7 +513,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                         display: 'flex', alignItems: 'center', gap: 8,
                         width: '100%', padding: '7px 12px',
                         background: 'transparent', border: 'none',
-                        borderBottom: '1px solid var(--border-subtle)',
+                        borderBottom: '1px solid var(--border)',
                         cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)',
                         fontFamily: 'inherit',
                       }}
@@ -517,7 +535,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
               <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Progress</span>
               <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{pct}%</span>
             </div>
-            <div style={{ height: 4, background: 'var(--border-subtle)', borderRadius: 9999, overflow: 'hidden' }}>
+            <div style={{ height: 4, background: 'var(--border)', borderRadius: 9999, overflow: 'hidden' }}>
               <div style={{
                 height: '100%', width: `${pct}%`,
                 background: progressBarColor(pct),
@@ -530,7 +548,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
         {/* Status filter */}
         <div style={{
           padding: '8px 18px',
-          borderBottom: '1px solid var(--border-subtle)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0,
         }}>
           {statuses.map(s => {
@@ -541,7 +559,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                 onClick={() => setStatusFilter(s)}
                 style={{
                   background: active ? 'var(--bg-hover)' : 'transparent',
-                  border: `1px solid ${active ? 'var(--border-subtle)' : 'transparent'}`,
+                  border: `1px solid ${active ? 'var(--border-hover)' : 'transparent'}`,
                   borderRadius: 6, padding: '3px 10px', fontSize: 11,
                   color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                   cursor: 'pointer', fontWeight: active ? 500 : 400,
@@ -552,7 +570,7 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
           })}
         </div>
 
-        {/* Add Phase — inline below filter bar */}
+        {/* Add Phase */}
         <div style={{ flexShrink: 0 }}>
           {addingPhase ? (
             <InlineInput
@@ -561,12 +579,12 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
               onCancel={() => setAddingPhase(false)}
             />
           ) : (
-            <div style={{ padding: '7px 18px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ padding: '7px 18px', borderBottom: '1px solid var(--border)' }}>
               <button
                 onClick={() => setAddingPhase(true)}
                 style={{
                   background: 'transparent', border: 'none',
-                  color: 'var(--accent)', fontSize: 12,
+                  color: 'var(--accent-blue)', fontSize: 12,
                   cursor: 'pointer', padding: 0,
                   fontFamily: 'inherit', fontWeight: 500,
                 }}
@@ -593,14 +611,16 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                     padding: '8px 18px',
                     position: 'sticky', top: 0, zIndex: 5,
                     background: 'var(--bg-panel)',
-                    borderBottom: '1px solid var(--border-subtle)',
+                    borderBottom: '1px solid var(--border)',
                     display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between',
                   }}>
                     <span style={{
-                      fontSize: 10, fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                      fontFamily: LORA,
+                      fontStyle: 'italic',
+                      fontSize: 11, fontWeight: 400,
+                      color: 'var(--text-secondary)',
+                      letterSpacing: '0.01em',
                     }}>{phase}</span>
                     <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                       {phaseDone}/{phaseTasks.length}
@@ -637,10 +657,10 @@ export default function Panel({ project, onClose, onProjectStatusUpdate }) {
                         padding: '6px 18px', height: 32,
                         display: 'flex', alignItems: 'center',
                         cursor: 'pointer',
-                        borderBottom: '1px solid var(--border-subtle)',
+                        borderBottom: '1px solid var(--border)',
                       }}
                     >
-                      <span style={{ fontSize: 11, color: 'var(--accent)' }}>+ Add task</span>
+                      <span style={{ fontSize: 11, color: 'var(--accent-blue)' }}>+ Add task</span>
                     </div>
                   )}
                 </div>

@@ -42,7 +42,7 @@ function IconBtn({ onClick, title, children }) {
         transition: 'background .12s, color .12s',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+        e.currentTarget.style.background = 'var(--bg-hover)';
         e.currentTarget.style.color = 'var(--text-primary)';
       }}
       onMouseLeave={e => {
@@ -63,31 +63,44 @@ export default function Nav({ counts, theme, onToggleTheme, onRefresh }) {
       background: 'var(--nav-bg)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
-      borderBottom: '1px solid var(--border-subtle)',
+      borderBottom: '1px solid var(--border)',
       display: 'flex', alignItems: 'center',
       padding: '0 20px', gap: 10,
     }}>
+      {/* Logo mark */}
       <div style={{
         width: 26, height: 26, borderRadius: 6,
-        background: 'var(--accent)',
+        background: 'var(--accent-blue)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
-        letterSpacing: '-0.3px',
+        fontSize: 14, fontWeight: 700, color: '#fff',
+        flexShrink: 0,
+        fontFamily: "'Lora', Georgia, serif",
+        fontStyle: 'italic',
       }}>N</div>
 
-      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-        NERO
-      </span>
-      <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 300 }}>/</span>
-      <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 400 }}>
-        ProjectBoard
-      </span>
+      {/* Brand name */}
+      <span style={{
+        fontFamily: "'Lora', Georgia, serif",
+        fontStyle: 'italic',
+        fontSize: 15, fontWeight: 600,
+        color: 'var(--text-primary)',
+        letterSpacing: '-0.2px',
+      }}>NERO</span>
+
+      <span style={{
+        fontSize: 13, color: 'var(--text-muted)',
+        fontFamily: 'system-ui, sans-serif',
+        fontWeight: 400,
+      }}>ProjectBoard</span>
 
       <div style={{ flex: 1 }} />
 
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{stats}</span>
+      <span style={{
+        fontSize: 12, color: 'var(--text-muted)',
+        fontFamily: 'system-ui, sans-serif',
+      }}>{stats}</span>
 
-      <div style={{ width: 1, height: 16, background: 'var(--border-subtle)', margin: '0 4px' }} />
+      <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px' }} />
 
       <IconBtn title="Refresh" onClick={onRefresh}><RefreshIcon /></IconBtn>
       <IconBtn title={theme === 'dark' ? 'Light mode' : 'Dark mode'} onClick={onToggleTheme}>
